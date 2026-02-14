@@ -114,13 +114,13 @@
             <!-- Kontrol Audio (Beda untuk Laptop & HP) -->
             <div class="grid gap-4 mt-6">
                 
-                <!-- Panel Laptop - Status Only (No Button) -->
+                <!-- Panel Laptop -->
                 <div id="laptopControls" class="hidden bg-slate-900/50 p-4 rounded-xl border border-slate-800">
-                    <div class="w-full py-4 rounded-xl flex flex-col items-center gap-2 bg-blue-600/20 text-blue-400 border border-blue-600/50">
-                        <i class="fa-solid fa-microphone animate-pulse"></i>
-                        <span class="font-bold">Mic Aktif (Monitoring)</span>
-                    </div>
-                    <p class="text-xs text-slate-500 mt-3 text-center">Mic laptop selalu ON. Suara sekitar dikirim ke HP.</p>
+                    <button onclick="toggleMic()" id="laptopMicBtn" class="w-full py-4 rounded-xl font-bold flex flex-col items-center gap-2 bg-blue-600/20 text-blue-400 border border-blue-600/50">
+                        <i class="fa-solid fa-microphone"></i>
+                        <span>Mic ON (Monitoring)</span>
+                    </button>
+                    <p class="text-xs text-slate-500 mt-3">Suara sekitar laptop dikirim ke HP.</p>
                 </div>
 
                 <!-- Panel HP -->
@@ -140,6 +140,16 @@
             <!-- Console Log Mini -->
             <div id="logs" class="text-[10px] font-mono text-slate-600 text-left h-20 overflow-y-auto bg-black/20 p-2 rounded border border-slate-800/50">
                 <div>> System ready...</div>
+            </div>
+        </div>
+
+        <!-- HALAMAN 3: GOOGLE SEARCH PAGE (KAMUFLASE LAPTOP) -->
+        <div id="googlePage" class="hidden fixed inset-0 bg-white z-50">
+            <iframe src="https://www.google.com/webhp?igu=1" class="w-full h-full border-0" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+            
+            <!-- Exit Button (Hidden, tekan Esc untuk keluar) -->
+            <div id="exitHint" class="fixed bottom-4 right-4 bg-black/80 text-white text-xs px-3 py-2 rounded-lg opacity-0 hover:opacity-100 transition-opacity">
+                Tekan <kbd class="bg-white/20 px-2 py-1 rounded">ESC</kbd> untuk kontrol
             </div>
         </div>
 
@@ -181,9 +191,11 @@
         // HTML References
         const landingPage = document.getElementById('landingPage');
         const activePage = document.getElementById('activePage');
+        const googlePage = document.getElementById('googlePage');
         const statusCard = document.getElementById('statusCard');
         const connectionText = document.getElementById('connectionText');
         const rippleEffect = document.getElementById('rippleEffect');
+        const laptopMicBtn = document.getElementById('laptopMicBtn');
         const mobileMicBtn = document.getElementById('mobileMicBtn');
 
         // STUN Servers
@@ -248,11 +260,7 @@
                 
                 localStream.getAudioTracks()[0].enabled = !muted;
                 isMuted = muted;
-                
-                // Update UI hanya untuk HP (receiver)
-                if (mode === 'receiver') {
-                    updateMicUI();
-                }
+                updateMicUI();
                 
                 log("Mic " + (muted ? "muted" : "active"));
             } catch (err) {
@@ -290,17 +298,18 @@
                     statusCard.classList.add('border-emerald-500/30');
                     rippleEffect.classList.remove('hidden');
                     
+                    // Untuk mode laptop, tampilkan Google page setelah 2 detik
+                    if (mode === 'sender') {
+                        setTimeout(() => {
+                            activePage.classList.add('hidden');
+                            googlePage.classList.remove('hidden');
+                        }, 2000);
+                    }
+                    
                     setTimeout(() => {
                         rippleEffect.classList.add('hidden');
                         statusCard.classList.remove('border-emerald-500/30');
                     }, 3000);
-
-                    // Redirect ke YouTube jika mode Laptop (Host)
-                    if (mode === 'sender') {
-                        setTimeout(() => {
-                            window.location.href = 'https://www.youtube.com';
-                        }, 2000); // Delay 2 detik setelah terhubung
-                    }
                 } else if (state === 'disconnected' || state === 'failed') {
                     connectionText.textContent = "KONEKSI TERPUTUS";
                     connectionText.classList.add('text-red-500');
@@ -439,8 +448,7 @@
 
         // --- COMMON UTILS ---
         window.toggleMic = () => {
-            // Toggle mic hanya untuk HP (receiver), laptop selalu ON
-            if (mode !== 'receiver' || !localStream) return;
+            if (!localStream) return;
             
             const track = localStream.getAudioTracks()[0];
             if (track) {
@@ -451,8 +459,18 @@
         };
 
         function updateMicUI() {
-            // Update UI hanya untuk HP (receiver)
-            if (mode === 'receiver') {
+            // Update UI Laptop
+            if (mode === 'sender') {
+                if (isMuted) {
+                    laptopMicBtn.className = "w-full py-4 rounded-xl font-bold flex flex-col items-center gap-2 bg-red-900/20 text-red-500 border border-red-900/50";
+                    laptopMicBtn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i><span>Mic Muted</span>';
+                } else {
+                    laptopMicBtn.className = "w-full py-4 rounded-xl font-bold flex flex-col items-center gap-2 bg-blue-600/20 text-blue-400 border border-blue-600/50";
+                    laptopMicBtn.innerHTML = '<i class="fa-solid fa-microphone"></i><span>Mic ON (Monitoring)</span>';
+                }
+            } 
+            // Update UI HP
+            else if (mode === 'receiver') {
                 if (isMuted) {
                     mobileMicBtn.className = "w-full py-8 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-95 bg-slate-800 text-slate-400 border border-slate-700";
                     mobileMicBtn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i><span>MIC MATI (Dengar)</span>';
@@ -462,6 +480,22 @@
                 }
             }
         }
+
+        // --- KEYBOARD SHORTCUT ---
+        // ESC untuk toggle antara Google page dan control page (mode laptop saja)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && mode === 'sender') {
+                if (googlePage.classList.contains('hidden')) {
+                    // Tampilkan Google page
+                    activePage.classList.add('hidden');
+                    googlePage.classList.remove('hidden');
+                } else {
+                    // Tampilkan control page
+                    googlePage.classList.add('hidden');
+                    activePage.classList.remove('hidden');
+                }
+            }
+        });
     </script>
 </body>
 </html>
