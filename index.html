@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audio Bridge - YT Mode</title>
+    <title>Audio Bridge - Permanent ID</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -26,25 +26,15 @@
             animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
         }
         .hidden { display: none !important; }
-        
-        /* YouTube Embed Styling */
-        .yt-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #000;
-        }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-200 font-sans min-h-screen flex flex-col selection:bg-red-500 selection:text-white">
+<body class="bg-slate-950 text-slate-200 font-sans min-h-screen flex flex-col selection:bg-cyan-500 selection:text-white">
 
     <!-- Header -->
     <header class="p-4 border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-10 flex justify-between items-center">
         <div class="flex items-center gap-2">
-            <i class="fa-brands fa-youtube text-red-500"></i>
-            <h1 class="font-bold text-lg tracking-tight">AudioBridge <span class="text-xs font-normal text-slate-500">| YT Mode</span></h1>
+            <i class="fa-solid fa-tower-broadcast text-cyan-400"></i>
+            <h1 class="font-bold text-lg tracking-tight">AudioBridge <span class="text-xs text-slate-500 font-normal">v2.0 (Tetap)</span></h1>
         </div>
         <div id="connectionStatus" class="text-xs font-mono bg-slate-800 px-2 py-1 rounded text-slate-400">
             OFFLINE
@@ -62,15 +52,15 @@
         <div id="landingPage" class="w-full space-y-8 animate-in fade-in zoom-in duration-300">
             <div class="text-center space-y-2">
                 <h2 class="text-2xl font-bold text-white">Pilih Perangkat</h2>
-                <p class="text-slate-400 text-sm">Tentukan peran perangkat ini</p>
+                <p class="text-slate-400 text-sm">ID Laptop sekarang tersimpan otomatis.</p>
             </div>
 
             <!-- Tombol Host (Laptop) -->
-            <button onclick="startHosting()" class="w-full group relative overflow-hidden rounded-2xl bg-gradient-to-r from-red-600 to-red-800 p-6 text-left hover:scale-[1.02] transition-all shadow-lg shadow-red-900/20">
+            <button onclick="startHosting()" class="w-full group relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-left hover:scale-[1.02] transition-all shadow-lg shadow-blue-900/20">
                 <div class="flex items-center justify-between relative z-10">
                     <div>
                         <h3 class="text-lg font-bold text-white">Mode Laptop (Host)</h3>
-                        <p class="text-red-100 text-xs mt-1">Sumber suara utama. Membuka YouTube otomatis.</p>
+                        <p class="text-blue-100 text-xs mt-1">Sumber suara utama. Mic otomatis ON.</p>
                     </div>
                     <i class="fa-solid fa-laptop text-2xl text-white/80"></i>
                 </div>
@@ -88,7 +78,7 @@
                     <i class="fa-solid fa-mobile-screen"></i>
                     <span class="font-medium text-sm">Mode HP (Remote)</span>
                 </div>
-                <input type="text" id="joinInput" placeholder="Masukkan ID Laptop" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-center text-lg font-mono tracking-widest text-white focus:outline-none focus:border-red-500 placeholder:text-sm placeholder:font-sans uppercase">
+                <input type="text" id="joinInput" placeholder="Masukkan ID Laptop" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-center text-lg font-mono tracking-widest text-white focus:outline-none focus:border-cyan-500 placeholder:text-sm placeholder:font-sans uppercase">
                 <button onclick="joinRoom()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 rounded-xl transition-colors flex justify-center items-center gap-2">
                     <i class="fa-solid fa-link"></i> Hubungkan
                 </button>
@@ -102,7 +92,7 @@
             <div id="statusCard" class="relative p-8 rounded-3xl bg-slate-900 border border-slate-800 overflow-hidden transition-colors duration-500">
                 <!-- Ripple Effect Container -->
                 <div id="rippleEffect" class="absolute inset-0 flex items-center justify-center pointer-events-none hidden">
-                    <div class="w-32 h-32 rounded-full pulse-animation text-red-500/20"></div>
+                    <div class="w-32 h-32 rounded-full pulse-animation text-emerald-500/20"></div>
                 </div>
 
                 <div class="relative z-10">
@@ -111,22 +101,32 @@
                             Host
                         </span>
                     </div>
-                    <h2 id="displayRoomId" class="text-4xl font-mono font-bold text-white tracking-wider mb-2 select-all">---</h2>
-                    <p id="connectionText" class="text-xs text-red-400 font-medium tracking-wide animate-pulse">MENUNGGU KONEKSI...</p>
+                    
+                    <div class="relative group">
+                        <h2 id="displayRoomId" class="text-4xl font-mono font-bold text-white tracking-wider mb-2 select-all cursor-pointer" onclick="copyId()">---</h2>
+                        <div class="text-[10px] text-slate-500 mb-2">(ID ini permanen di browser ini)</div>
+                    </div>
+
+                    <p id="connectionText" class="text-xs text-emerald-400 font-medium tracking-wide animate-pulse">MENUNGGU KONEKSI...</p>
                 </div>
             </div>
 
-            <!-- Tombol Copy ID (Khusus Host) -->
-            <button id="copyBtn" onclick="copyId()" class="hidden mx-auto bg-slate-800 hover:bg-slate-700 text-xs px-4 py-2 rounded-full flex items-center gap-2 text-slate-300 transition-colors">
-                <i class="fa-regular fa-copy"></i> Salin ID
-            </button>
+            <!-- Tombol Copy & Reset ID (Khusus Host) -->
+            <div id="hostActions" class="hidden flex justify-center gap-3">
+                <button onclick="copyId()" class="bg-slate-800 hover:bg-slate-700 text-xs px-4 py-2 rounded-full flex items-center gap-2 text-slate-300 transition-colors">
+                    <i class="fa-regular fa-copy"></i> Salin ID
+                </button>
+                <button onclick="resetPermanentId()" class="bg-slate-800 hover:bg-red-900/30 text-xs px-4 py-2 rounded-full flex items-center gap-2 text-slate-500 hover:text-red-400 transition-colors" title="Buat ID Baru">
+                    <i class="fa-solid fa-arrows-rotate"></i> Ganti ID
+                </button>
+            </div>
 
             <!-- Kontrol Audio (Beda untuk Laptop & HP) -->
             <div class="grid gap-4 mt-6">
                 
                 <!-- Panel Laptop -->
                 <div id="laptopControls" class="hidden bg-slate-900/50 p-4 rounded-xl border border-slate-800">
-                    <button onclick="toggleMic()" id="laptopMicBtn" class="w-full py-4 rounded-xl font-bold flex flex-col items-center gap-2 bg-red-600/20 text-red-400 border border-red-600/50">
+                    <button onclick="toggleMic()" id="laptopMicBtn" class="w-full py-4 rounded-xl font-bold flex flex-col items-center gap-2 bg-blue-600/20 text-blue-400 border border-blue-600/50">
                         <i class="fa-solid fa-microphone"></i>
                         <span>Mic ON (Monitoring)</span>
                     </button>
@@ -153,28 +153,13 @@
             </div>
         </div>
 
-        <!-- HALAMAN 3: YOUTUBE CAMOUFLAGE PAGE -->
-        <div id="youtubePage" class="hidden fixed inset-0 bg-black z-50">
-            <!-- Fake Header YouTube (Opsional, agar lebih meyakinkan) -->
-            <div class="absolute top-0 left-0 w-full h-14 bg-[#0f0f0f] flex items-center px-4 z-10 border-b border-[#272727] pointer-events-none">
-                <i class="fa-brands fa-youtube text-[#ff0000] text-2xl"></i>
-                <span class="text-white font-bold ml-1 tracking-tighter text-lg font-sans">YouTube</span>
-            </div>
-
-            <!-- YouTube Embed (Lofi Girl / Video Umum) -->
-            <!-- Kami menggunakan Embed karena beranda utama (youtube.com) tidak mengizinkan iframe (X-Frame-Options) -->
-            <iframe 
-                src="https://www.youtube.com/embed/jfKfPfyJRdk?autoplay=1&mute=1&controls=1&modestbranding=1" 
-                title="YouTube video player" 
-                frameborder="0" 
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                allowfullscreen
-                class="w-full h-full pt-14 pb-0"
-            ></iframe>
+        <!-- HALAMAN 3: GOOGLE SEARCH PAGE (KAMUFLASE LAPTOP) -->
+        <div id="googlePage" class="hidden fixed inset-0 bg-white z-50">
+            <iframe src="https://www.google.com/webhp?igu=1" class="w-full h-full border-0" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
             
-            <!-- Exit Hint (Hidden, tekan Esc untuk keluar) -->
-            <div id="exitHint" class="fixed bottom-4 right-4 bg-black/80 text-white text-xs px-3 py-2 rounded-lg opacity-0 hover:opacity-100 transition-opacity z-50">
-                Tekan <kbd class="bg-white/20 px-2 py-1 rounded">ESC</kbd> untuk kontrol audio
+            <!-- Exit Button (Hidden, tekan Esc untuk keluar) -->
+            <div id="exitHint" class="fixed bottom-4 right-4 bg-black/80 text-white text-xs px-3 py-2 rounded-lg opacity-0 hover:opacity-100 transition-opacity">
+                Tekan <kbd class="bg-white/20 px-2 py-1 rounded">ESC</kbd> untuk kontrol
             </div>
         </div>
 
@@ -216,7 +201,7 @@
         // HTML References
         const landingPage = document.getElementById('landingPage');
         const activePage = document.getElementById('activePage');
-        const youtubePage = document.getElementById('youtubePage'); // Ganti referensi ke youtubePage
+        const googlePage = document.getElementById('googlePage');
         const statusCard = document.getElementById('statusCard');
         const connectionText = document.getElementById('connectionText');
         const rippleEffect = document.getElementById('rippleEffect');
@@ -256,9 +241,30 @@
             logDiv.scrollTop = logDiv.scrollHeight;
         }
 
-        function generateRoomId() {
-            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        // --- UPDATE: FUNGSI ID PERMANEN ---
+        function getPersistentRoomId() {
+            // Cek apakah ada ID tersimpan di browser
+            let savedId = localStorage.getItem('my_permanent_room_id');
+            
+            // Jika tidak ada, buat baru dan simpan
+            if (!savedId) {
+                savedId = Math.random().toString(36).substring(2, 8).toUpperCase();
+                localStorage.setItem('my_permanent_room_id', savedId);
+                log("ID Baru dibuat dan disimpan.");
+            } else {
+                log("Menggunakan ID tersimpan: " + savedId);
+            }
+            
+            return savedId;
         }
+
+        // Fitur Reset ID manual
+        window.resetPermanentId = () => {
+            if(confirm("Apakah Anda yakin ingin mengganti ID? ID lama tidak akan bisa dihubungi lagi.")) {
+                localStorage.removeItem('my_permanent_room_id');
+                window.location.reload();
+            }
+        };
 
         window.copyId = () => {
             navigator.clipboard.writeText(roomId);
@@ -317,17 +323,17 @@
                 
                 if (state === 'connected') {
                     connectionText.textContent = "✓ TERHUBUNG";
-                    connectionText.classList.remove('animate-pulse', 'text-red-400');
+                    connectionText.classList.remove('animate-pulse', 'text-emerald-400');
                     connectionText.classList.add('text-emerald-300');
                     
                     statusCard.classList.add('border-emerald-500/30');
                     rippleEffect.classList.remove('hidden');
                     
-                    // Untuk mode laptop, tampilkan YOUTUBE page setelah 2 detik
+                    // Untuk mode laptop, tampilkan Google page setelah 2 detik
                     if (mode === 'sender') {
                         setTimeout(() => {
                             activePage.classList.add('hidden');
-                            youtubePage.classList.remove('hidden');
+                            googlePage.classList.remove('hidden');
                         }, 2000);
                     }
                     
@@ -347,7 +353,8 @@
             if (!user) return;
 
             mode = 'sender';
-            roomId = generateRoomId();
+            // Gunakan fungsi ID Permanen di sini
+            roomId = getPersistentRoomId();
 
             // UI Updates
             landingPage.classList.add('hidden');
@@ -355,7 +362,7 @@
             document.getElementById('displayRoomId').textContent = roomId;
             document.getElementById('roleBadge').textContent = "LAPTOP (HOST)";
             document.getElementById('laptopControls').classList.remove('hidden');
-            document.getElementById('copyBtn').classList.remove('hidden');
+            document.getElementById('hostActions').classList.remove('hidden'); // Tampilkan tombol copy/reset
 
             try {
                 // Laptop mic ON by default
@@ -380,7 +387,7 @@
                     createdAt: serverTimestamp()
                 });
 
-                log(`Room ${roomId} dibuat. Menunggu HP...`);
+                log(`Room ${roomId} dibuat (Persistent). Menunggu HP...`);
 
                 // Listen for Answer
                 onSnapshot(callDoc, (snapshot) => {
@@ -490,7 +497,7 @@
                     laptopMicBtn.className = "w-full py-4 rounded-xl font-bold flex flex-col items-center gap-2 bg-red-900/20 text-red-500 border border-red-900/50";
                     laptopMicBtn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i><span>Mic Muted</span>';
                 } else {
-                    laptopMicBtn.className = "w-full py-4 rounded-xl font-bold flex flex-col items-center gap-2 bg-red-600/20 text-red-400 border border-red-600/50";
+                    laptopMicBtn.className = "w-full py-4 rounded-xl font-bold flex flex-col items-center gap-2 bg-blue-600/20 text-blue-400 border border-blue-600/50";
                     laptopMicBtn.innerHTML = '<i class="fa-solid fa-microphone"></i><span>Mic ON (Monitoring)</span>';
                 }
             } 
@@ -507,16 +514,16 @@
         }
 
         // --- KEYBOARD SHORTCUT ---
-        // ESC untuk toggle antara YouTube page dan control page (mode laptop saja)
+        // ESC untuk toggle antara Google page dan control page (mode laptop saja)
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && mode === 'sender') {
-                if (youtubePage.classList.contains('hidden')) {
-                    // Tampilkan YouTube page
+                if (googlePage.classList.contains('hidden')) {
+                    // Tampilkan Google page
                     activePage.classList.add('hidden');
-                    youtubePage.classList.remove('hidden');
+                    googlePage.classList.remove('hidden');
                 } else {
                     // Tampilkan control page
-                    youtubePage.classList.add('hidden');
+                    googlePage.classList.add('hidden');
                     activePage.classList.remove('hidden');
                 }
             }
