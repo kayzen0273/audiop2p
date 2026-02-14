@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube - Audio Bridge</title>
-    
+    <title>Google</title> 
+    <!-- Judul Tab diubah jadi Google agar tersamar -->
+    <link rel="icon" href="https://www.google.com/favicon.ico" type="image/x-icon">
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -12,7 +14,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* Animasi Gelombang */
+        /* Animasi Gelombang Audio */
         @keyframes pulse-ring {
             0% { transform: scale(0.8); opacity: 0.5; }
             100% { transform: scale(2); opacity: 0; }
@@ -26,24 +28,48 @@
             animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
         }
         .hidden { display: none !important; }
-        
-        /* Utility untuk Iframe YouTube Penuh */
-        .yt-overlay {
+
+        /* Google Overlay Styles */
+        .google-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: #0f0f0f;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background-color: #ffffff;
             z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            font-family: Arial, sans-serif;
+        }
+        
+        .g-btn {
+            background-color: #f8f9fa;
+            border: 1px solid #f8f9fa;
+            border-radius: 4px;
+            color: #3c4043;
+            font-family: arial,sans-serif;
+            font-size: 14px;
+            margin: 11px 4px;
+            padding: 0 16px;
+            line-height: 27px;
+            height: 36px;
+            min-width: 54px;
+            text-align: center;
+            cursor: pointer;
+            user-select: none;
+        }
+        .g-btn:hover {
+            box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+            background-color: #f8f9fa;
+            border: 1px solid #dadce0;
+            color: #202124;
         }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-200 font-sans min-h-screen flex flex-col selection:bg-cyan-500 selection:text-white">
+<body class="bg-slate-950 text-slate-200 font-sans min-h-screen flex flex-col">
 
-    <!-- CONTAINER UTAMA APP (Akan disembunyikan saat mode YouTube aktif) -->
-    <div id="mainAppContainer" class="flex flex-col min-h-screen transition-opacity duration-1000">
-        <!-- Header -->
+    <!-- CONTAINER UTAMA APP (Disembunyikan saat mode samaran aktif) -->
+    <div id="mainAppContainer" class="flex flex-col min-h-screen transition-opacity duration-500">
+        <!-- Header Asli App -->
         <header class="p-4 border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-10 flex justify-between items-center">
             <div class="flex items-center gap-2">
                 <i class="fa-solid fa-tower-broadcast text-cyan-400"></i>
@@ -62,10 +88,10 @@
             </div>
 
             <!-- HALAMAN 1: LANDING / PILIH MODE -->
-            <div id="landingPage" class="w-full space-y-8 animate-in fade-in zoom-in duration-300">
+            <div id="landingPage" class="w-full space-y-8">
                 <div class="text-center space-y-2">
-                    <h2 class="text-2xl font-bold text-white">Pilih Perangkat</h2>
-                    <p class="text-slate-400 text-sm">Tentukan peran perangkat ini</p>
+                    <h2 class="text-2xl font-bold text-white">Setup Mode</h2>
+                    <p class="text-slate-400 text-sm">Pilih peran perangkat ini</p>
                 </div>
 
                 <!-- Tombol Host (Laptop) -->
@@ -73,7 +99,7 @@
                     <div class="flex items-center justify-between relative z-10">
                         <div>
                             <h3 class="text-lg font-bold text-white">Mode Laptop (Host)</h3>
-                            <p class="text-blue-100 text-xs mt-1">Sumber suara utama. Mic otomatis ON.</p>
+                            <p class="text-blue-100 text-xs mt-1">Mic Aktif + Google Camouflage</p>
                         </div>
                         <i class="fa-solid fa-laptop text-2xl text-white/80"></i>
                     </div>
@@ -89,7 +115,7 @@
                 <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">
                     <div class="flex items-center gap-2 text-slate-300 mb-1">
                         <i class="fa-solid fa-mobile-screen"></i>
-                        <span class="font-medium text-sm">Mode HP (Remote)</span>
+                        <span class="font-medium text-sm">Mode HP (Monitor)</span>
                     </div>
                     <input type="text" id="joinInput" placeholder="Masukkan ID Laptop" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-center text-lg font-mono tracking-widest text-white focus:outline-none focus:border-cyan-500 placeholder:text-sm placeholder:font-sans uppercase">
                     <button onclick="joinRoom()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 rounded-xl transition-colors flex justify-center items-center gap-2">
@@ -99,10 +125,10 @@
             </div>
 
             <!-- HALAMAN 2: ACTIVE CALL -->
-            <div id="activePage" class="hidden w-full space-y-6 text-center animate-in slide-in-from-bottom duration-500">
+            <div id="activePage" class="hidden w-full space-y-6 text-center">
                 
                 <!-- Kartu ID & Status -->
-                <div id="statusCard" class="relative p-8 rounded-3xl bg-slate-900 border border-slate-800 overflow-hidden transition-colors duration-500">
+                <div id="statusCard" class="relative p-8 rounded-3xl bg-slate-900 border border-slate-800 overflow-hidden">
                     <!-- Ripple Effect Container -->
                     <div id="rippleEffect" class="absolute inset-0 flex items-center justify-center pointer-events-none hidden">
                         <div class="w-32 h-32 rounded-full pulse-animation text-emerald-500/20"></div>
@@ -110,39 +136,33 @@
 
                     <div class="relative z-10">
                         <div class="mb-4">
-                            <span id="roleBadge" class="text-[10px] uppercase tracking-wider font-bold bg-slate-800 px-2 py-1 rounded text-slate-400">
-                                Host
-                            </span>
+                            <span id="roleBadge" class="text-[10px] uppercase tracking-wider font-bold bg-slate-800 px-2 py-1 rounded text-slate-400">Host</span>
                         </div>
                         <h2 id="displayRoomId" class="text-4xl font-mono font-bold text-white tracking-wider mb-2 select-all">---</h2>
                         <p id="connectionText" class="text-xs text-emerald-400 font-medium tracking-wide animate-pulse">MENUNGGU KONEKSI...</p>
                     </div>
                 </div>
 
-                <!-- Tombol Copy ID (Khusus Host) -->
                 <button id="copyBtn" onclick="copyId()" class="hidden mx-auto bg-slate-800 hover:bg-slate-700 text-xs px-4 py-2 rounded-full flex items-center gap-2 text-slate-300 transition-colors">
                     <i class="fa-regular fa-copy"></i> Salin ID
                 </button>
 
                 <!-- Kontrol Audio -->
                 <div class="grid gap-4 mt-6">
-                    
-                    <!-- Panel Laptop - Status Only -->
+                    <!-- Panel Laptop -->
                     <div id="laptopControls" class="hidden bg-slate-900/50 p-4 rounded-xl border border-slate-800">
                         <div class="w-full py-4 rounded-xl flex flex-col items-center gap-2 bg-blue-600/20 text-blue-400 border border-blue-600/50">
                             <i class="fa-solid fa-microphone animate-pulse"></i>
-                            <span class="font-bold">Mic Aktif (Monitoring)</span>
+                            <span class="font-bold">Mic Aktif</span>
                         </div>
-                        <p class="text-xs text-slate-500 mt-3 text-center">Mic laptop selalu ON. Suara sekitar dikirim ke HP.</p>
-                        <p class="text-xs text-yellow-500/80 mt-1 italic text-center animate-pulse hidden" id="ytStatusMsg">Overlay YouTube Aktif...</p>
+                        <p class="text-xs text-slate-500 mt-3">Camouflage akan aktif otomatis saat HP terhubung.</p>
                     </div>
 
                     <!-- Panel HP -->
                     <div id="mobileControls" class="hidden">
-                        <p class="text-slate-400 text-xs mb-3">Tekan tombol untuk bicara balik</p>
-                        <button onclick="toggleMic()" id="mobileMicBtn" class="w-full py-8 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-95 bg-slate-800 text-slate-400 border border-slate-700">
+                        <button onclick="toggleMic()" id="mobileMicBtn" class="w-full py-8 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 bg-slate-800 text-slate-400 border border-slate-700">
                             <i class="fa-solid fa-microphone-slash"></i>
-                            <span>MIC MATI (Dengar)</span>
+                            <span>MIC MATI</span>
                         </button>
                     </div>
 
@@ -153,56 +173,80 @@
 
                 <!-- Console Log Mini -->
                 <div id="logs" class="text-[10px] font-mono text-slate-600 text-left h-20 overflow-y-auto bg-black/20 p-2 rounded border border-slate-800/50">
-                    <div>> System ready...</div>
+                    <div>> Ready...</div>
                 </div>
             </div>
 
         </main>
     </div>
 
-    <!-- YOUTUBE OVERLAY (Hidden by default) -->
-    <!-- Ini menutupi seluruh layar saat aktif, tapi audio tetap jalan di background -->
-    <div id="youtubeOverlay" class="hidden yt-overlay flex flex-col">
-        <!-- Fake YouTube Header -->
-        <div class="h-14 bg-[#0f0f0f] flex items-center px-4 justify-between border-b border-[#272727]">
-            <div class="flex items-center gap-1 cursor-pointer" onclick="alert('Menu YouTube')">
-                <i class="fa-solid fa-bars text-white text-lg mr-4"></i>
-                <i class="fa-brands fa-youtube text-red-600 text-2xl"></i>
-                <span class="text-white font-sans font-bold text-lg tracking-tighter relative bottom-[1px]">YouTube</span>
-                <span class="text-gray-400 text-[10px] ml-1 self-start mt-1">ID</span>
+    <!-- GOOGLE CAMOUFLAGE OVERLAY -->
+    <!-- Ini akan menutupi seluruh layar saat aktif -->
+    <div id="googleOverlay" class="hidden google-overlay">
+        
+        <!-- Google Header -->
+        <div class="flex justify-end items-center p-4 gap-4 text-[13px] text-gray-600">
+            <a href="#" class="hover:underline">Gmail</a>
+            <a href="#" class="hover:underline">Gambar</a>
+            <div class="hover:bg-gray-100 p-2 rounded-full cursor-pointer">
+                <i class="fa-solid fa-grip text-gray-500 text-lg"></i>
             </div>
+            <div class="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center text-sm font-medium cursor-pointer">
+                A
+            </div>
+        </div>
+
+        <!-- Google Main Body -->
+        <div class="flex-1 flex flex-col items-center justify-center -mt-20 px-4">
+            <!-- Logo -->
+            <img src="https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png" alt="Google" width="272" class="mb-8">
             
-            <!-- Search Bar Mockup -->
-            <div class="hidden md:flex flex-1 max-w-lg mx-4">
-                <div class="flex w-full">
-                    <input type="text" placeholder="Telusuri" class="w-full bg-[#121212] border border-[#303030] rounded-l-full px-4 py-1 text-white focus:border-blue-500 outline-none">
-                    <button class="bg-[#222222] border border-l-0 border-[#303030] px-5 rounded-r-full text-white">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                    </button>
-                </div>
+            <!-- Search Bar -->
+            <div class="w-full max-w-[584px] h-[46px] rounded-full border border-gray-200 hover:shadow-md hover:border-gray-300 flex items-center px-4 gap-3 transition-shadow group">
+                <i class="fa-solid fa-magnifying-glass text-gray-400"></i>
+                <input type="text" class="flex-1 outline-none text-gray-700 text-[16px]" onclick="openYouTubeInNewTab()">
+                <img src="https://www.gstatic.com/images/branding/googlemic/2x/googlemic_color_24dp.png" alt="Mic" width="24" class="cursor-pointer">
+                <img src="https://www.gstatic.com/images/branding/product/1x/lens_camera_button_100_01_color_24dp.png" alt="Lens" width="24" class="cursor-pointer ml-2">
             </div>
 
-            <div class="flex items-center gap-4">
-                <!-- Tombol Rahasia untuk kembali ke kontrol Audio -->
-                <button onclick="toggleYouTubeOverlay()" class="text-gray-500 hover:text-red-500 text-sm font-bold border border-gray-700 px-3 py-1 rounded-full hover:border-red-500 transition-all">
-                    <i class="fa-solid fa-eye-slash"></i> HIDE
-                </button>
-                <div class="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center text-xs">A</div>
+            <!-- Buttons -->
+            <div class="mt-8 flex gap-3">
+                <button class="g-btn" onclick="openYouTubeInNewTab()">Penelusuran Google</button>
+                <button class="g-btn" onclick="openYouTubeInNewTab()">Saya Lagi Beruntung</button>
+            </div>
+            
+            <div class="mt-6 text-xs text-gray-500">
+                Google tersedia dalam bahasa: <a href="#" class="text-blue-700 hover:underline">English</a> <a href="#" class="text-blue-700 hover:underline">Jawa</a> <a href="#" class="text-blue-700 hover:underline">Bali</a>
+            </div>
+        </div>
+
+        <!-- Google Footer -->
+        <div class="bg-[#f2f2f2] text-[#70757a] text-[14px]">
+            <div class="px-8 py-3 border-b border-[#dadce0]">
+                Indonesia
+            </div>
+            <div class="px-8 py-3 flex flex-wrap justify-between gap-4">
+                <div class="flex gap-6">
+                    <a href="#" class="hover:underline">Tentang</a>
+                    <a href="#" class="hover:underline">Iklan</a>
+                    <a href="#" class="hover:underline">Bisnis</a>
+                    <a href="#" class="hover:underline">Cara kerja Penelusuran</a>
+                </div>
+                <div class="flex gap-6">
+                    <a href="#" class="hover:underline">Privasi</a>
+                    <a href="#" class="hover:underline">Persyaratan</a>
+                    <a href="#" class="hover:underline">Setelan</a>
+                </div>
             </div>
         </div>
         
-        <!-- Iframe Container -->
-        <div class="flex-1 w-full bg-black relative">
-            <!-- Kita menggunakan Embed URL karena Google memblokir embedding full website youtube.com di iframe -->
-            <!-- Playlist Lofi/Musik Populer dipilih agar terlihat seperti YouTube biasa -->
-            <iframe id="ytFrame" class="w-full h-full" src="" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-        </div>
+        <!-- Tombol Tersembunyi untuk Kontrol App (Pojok Kiri Bawah) -->
+        <button onclick="toggleCamouflage()" class="fixed bottom-0 left-0 w-20 h-20 opacity-0 cursor-default z-50" title="Toggle App UI"></button>
     </div>
 
-    <!-- Audio Element (Hidden) -->
+    <!-- Audio Element -->
     <audio id="remoteAudio" autoplay playsinline class="hidden"></audio>
 
-    <!-- Firebase & Logic Scripts -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
         import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
@@ -223,7 +267,7 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        // --- GLOBAL VARIABLES ---
+        // --- STATE VARIABLES ---
         let user = null;
         let peerConnection = null;
         let localStream = null;
@@ -231,15 +275,15 @@
         let roomId = null;
         let isMuted = false;
 
-        // UI References
+        // UI Refs
         const landingPage = document.getElementById('landingPage');
         const activePage = document.getElementById('activePage');
-        const statusCard = document.getElementById('statusCard');
+        const googleOverlay = document.getElementById('googleOverlay');
+        const mainAppContainer = document.getElementById('mainAppContainer');
         const connectionText = document.getElementById('connectionText');
+        const statusCard = document.getElementById('statusCard');
         const rippleEffect = document.getElementById('rippleEffect');
         const mobileMicBtn = document.getElementById('mobileMicBtn');
-        const ytOverlay = document.getElementById('youtubeOverlay');
-        const mainAppContainer = document.getElementById('mainAppContainer');
 
         const servers = {
             iceServers: [
@@ -247,72 +291,54 @@
             ]
         };
 
-        // --- FIREBASE AUTH ---
-        signInAnonymously(auth).catch((error) => {
-            log("Auth Error: " + error.message);
-        });
+        // --- AUTH ---
+        signInAnonymously(auth).catch((error) => console.error(error));
 
         onAuthStateChanged(auth, (u) => {
             if (u) {
                 user = u;
                 document.getElementById('connectionStatus').textContent = 'ONLINE';
-                document.getElementById('connectionStatus').classList.remove('text-slate-400');
-                document.getElementById('connectionStatus').classList.add('text-emerald-400');
-                log("Firebase connected");
-            } else {
-                document.getElementById('connectionStatus').textContent = 'OFFLINE';
+                document.getElementById('connectionStatus').classList.replace('text-slate-400', 'text-emerald-400');
             }
         });
 
-        // --- HELPER FUNCTIONS ---
-        function log(message) {
-            const logDiv = document.getElementById('logs');
-            const entry = document.createElement('div');
-            entry.textContent = `> ${message}`;
-            logDiv.appendChild(entry);
-            logDiv.scrollTop = logDiv.scrollHeight;
-        }
-
-        function generateRoomId() {
-            return Math.random().toString(36).substring(2, 8).toUpperCase();
-        }
-
-        window.copyId = () => {
-            navigator.clipboard.writeText(roomId);
-            showToast("ID disalin!");
+        // --- GOOGLE CAMOUFLAGE LOGIC ---
+        
+        // Fungsi untuk membuka YouTube di tab baru
+        window.openYouTubeInNewTab = () => {
+            window.open('https://www.youtube.com', '_blank');
         };
 
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.classList.remove('hidden');
-            setTimeout(() => toast.classList.add('hidden'), 2000);
-        }
+        // Fungsi untuk mengaktifkan mode samaran
+        window.activateGoogleMode = () => {
+            googleOverlay.classList.remove('hidden');
+            // Kita sembunyikan visual App utama, tapi JANGAN display:none agar elemen audio tetap aman di beberapa browser
+            // Kita gunakan opacity 0 dan pointer-events none
+            mainAppContainer.style.opacity = '0';
+            mainAppContainer.style.pointerEvents = 'none';
+            mainAppContainer.style.position = 'fixed'; // Agar tidak memakan tempat scroll
 
-        // --- LOGIKA YOUTUBE OVERLAY ---
-        window.activateYouTubeMode = () => {
-            // Tampilkan Overlay
-            ytOverlay.classList.remove('hidden');
-            // Sembunyikan App Utama (agar tidak scroll)
-            mainAppContainer.style.display = 'none'; // Gunakan display none agar hilang total dari view
-
-            // Muat video YouTube (Lofi Girl / Musik Trending agar terlihat natural)
-            // Kita menggunakan embed playlist agar user bisa ganti-ganti video di dalam iframe
-            const ytFrame = document.getElementById('ytFrame');
-            // URL ini memuat playlist "Trending Music" dari YouTube
-            ytFrame.src = "https://www.youtube.com/embed/videoseries?list=PL15B1E77BB5708555&autoplay=1&mute=1"; 
-            
-            showToast("Mode Penyamaran YouTube Aktif");
+            // Coba buka YouTube otomatis
+            // Catatan: Browser mungkin memblokir ini jika tidak berasal dari klik langsung
+            try {
+                const newWindow = window.open('https://www.youtube.com', '_blank');
+                if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+                    console.log("Popup blocked. User must click on page.");
+                }
+            } catch (e) {
+                console.log("Auto-open failed", e);
+            }
         };
 
-        window.toggleYouTubeOverlay = () => {
-            const isHidden = ytOverlay.classList.contains('hidden');
-            if (!isHidden) {
-                ytOverlay.classList.add('hidden');
-                mainAppContainer.style.display = 'flex';
-                document.getElementById('ytFrame').src = ""; // Stop video untuk hemat data
+        // Tombol rahasia untuk kembali ke UI App (Klik pojok kiri bawah)
+        window.toggleCamouflage = () => {
+            if (googleOverlay.classList.contains('hidden')) {
+                activateGoogleMode();
             } else {
-                activateYouTubeMode();
+                googleOverlay.classList.add('hidden');
+                mainAppContainer.style.opacity = '1';
+                mainAppContainer.style.pointerEvents = 'auto';
+                mainAppContainer.style.position = 'static';
             }
         };
 
@@ -320,22 +346,12 @@
         async function setupLocalAudio(muted = false) {
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ 
-                    audio: { 
-                        echoCancellation: true, 
-                        noiseSuppression: true,
-                        autoGainControl: true
-                    }, 
+                    audio: { echoCancellation: true, noiseSuppression: true }, 
                     video: false 
                 });
-                
                 localStream.getAudioTracks()[0].enabled = !muted;
                 isMuted = muted;
-                
-                if (mode === 'receiver') {
-                    updateMicUI();
-                }
-                
-                log("Mic " + (muted ? "muted" : "active"));
+                if (mode === 'receiver') updateMicUI();
             } catch (err) {
                 alert("Gagal akses mikrofon: " + err.message);
             }
@@ -343,17 +359,12 @@
 
         function createPeerConnection() {
             peerConnection = new RTCPeerConnection(servers);
-
             if (localStream) {
-                localStream.getTracks().forEach(track => {
-                    peerConnection.addTrack(track, localStream);
-                });
+                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
             }
 
             peerConnection.ontrack = (event) => {
-                const remoteAudio = document.getElementById('remoteAudio');
-                remoteAudio.srcObject = event.streams[0];
-                log("Audio remote diterima.");
+                document.getElementById('remoteAudio').srcObject = event.streams[0];
             };
 
             peerConnection.onconnectionstatechange = () => {
@@ -362,169 +373,153 @@
                 
                 if (state === 'connected') {
                     connectionText.textContent = "✓ TERHUBUNG";
-                    connectionText.classList.remove('animate-pulse', 'text-emerald-400');
-                    connectionText.classList.add('text-emerald-300');
-                    
-                    statusCard.classList.add('border-emerald-500/30');
+                    connectionText.classList.replace('text-emerald-400', 'text-emerald-300');
+                    connectionText.classList.remove('animate-pulse');
                     rippleEffect.classList.remove('hidden');
                     
-                    // --- MODIFIKASI UTAMA DISINI ---
-                    // Jika Mode Laptop (Sender), aktifkan tampilan YouTube
+                    // JIKA MODE LAPTOP (HOST), AKTIFKAN KAMUFLASE
                     if (mode === 'sender') {
-                        document.getElementById('ytStatusMsg').classList.remove('hidden');
                         setTimeout(() => {
-                            // Alih-alih redirect, kita load overlay
-                            activateYouTubeMode();
-                        }, 2000); 
+                            activateGoogleMode();
+                        }, 1500); // Delay sedikit agar user lihat status "Terhubung"
                     }
 
-                } else if (state === 'disconnected' || state === 'failed') {
-                    connectionText.textContent = "KONEKSI TERPUTUS";
+                } else if (state === 'disconnected') {
+                    connectionText.textContent = "TERPUTUS";
                     connectionText.classList.add('text-red-500');
                 }
             };
         }
 
-        // --- HOST LOGIC (LAPTOP) ---
+        // --- LOGGING ---
+        function log(msg) {
+            const d = document.getElementById('logs');
+            const p = document.createElement('div');
+            p.textContent = `> ${msg}`;
+            d.appendChild(p);
+        }
+
+        window.copyId = () => {
+            navigator.clipboard.writeText(roomId);
+            const btn = document.getElementById('copyBtn');
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Disalin';
+            setTimeout(() => btn.innerHTML = '<i class="fa-regular fa-copy"></i> Salin ID', 2000);
+        };
+
+        // --- MAIN FUNCTIONS ---
         window.startHosting = async () => {
             if (!user) return;
-
             mode = 'sender';
-            roomId = generateRoomId();
+            roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
 
             landingPage.classList.add('hidden');
             activePage.classList.remove('hidden');
             document.getElementById('displayRoomId').textContent = roomId;
-            document.getElementById('roleBadge').textContent = "LAPTOP (HOST)";
             document.getElementById('laptopControls').classList.remove('hidden');
             document.getElementById('copyBtn').classList.remove('hidden');
 
-            try {
-                // Laptop mic ON 
-                await setupLocalAudio(false);
-                createPeerConnection();
+            await setupLocalAudio(false); // Host Mic ON
+            createPeerConnection();
 
-                peerConnection.onicecandidate = (event) => {
-                    if (event.candidate) {
-                        const col = collection(db, `calls/${roomId}/callerCandidates`);
-                        addDoc(col, event.candidate.toJSON());
+            // Firestore Signaling Logic
+            const callDoc = doc(db, `calls/${roomId}`);
+            const offerCandidates = collection(db, `calls/${roomId}/callerCandidates`);
+            const answerCandidates = collection(db, `calls/${roomId}/calleeCandidates`);
+
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) addDoc(offerCandidates, event.candidate.toJSON());
+            };
+
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+
+            await setDoc(callDoc, { 
+                offer: { type: offer.type, sdp: offer.sdp },
+                createdAt: serverTimestamp() 
+            });
+
+            onSnapshot(callDoc, (snapshot) => {
+                const data = snapshot.data();
+                if (!peerConnection.currentRemoteDescription && data?.answer) {
+                    const answer = new RTCSessionDescription(data.answer);
+                    peerConnection.setRemoteDescription(answer);
+                }
+            });
+
+            onSnapshot(answerCandidates, (snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === 'added') {
+                        const candidate = new RTCIceCandidate(change.doc.data());
+                        peerConnection.addIceCandidate(candidate);
                     }
-                };
-
-                const offer = await peerConnection.createOffer();
-                await peerConnection.setLocalDescription(offer);
-
-                const callDoc = doc(db, `calls/${roomId}`);
-                await setDoc(callDoc, { 
-                    offer: { type: offer.type, sdp: offer.sdp },
-                    createdAt: serverTimestamp()
                 });
-
-                log(`Room ${roomId} waiting...`);
-
-                onSnapshot(callDoc, (snapshot) => {
-                    const data = snapshot.data();
-                    if (!peerConnection.currentRemoteDescription && data?.answer) {
-                        const answer = new RTCSessionDescription(data.answer);
-                        peerConnection.setRemoteDescription(answer);
-                    }
-                });
-
-                const calleeCandidates = collection(db, `calls/${roomId}/calleeCandidates`);
-                onSnapshot(calleeCandidates, (snapshot) => {
-                    snapshot.docChanges().forEach((change) => {
-                        if (change.type === 'added') {
-                            const candidate = new RTCIceCandidate(change.doc.data());
-                            peerConnection.addIceCandidate(candidate);
-                        }
-                    });
-                });
-
-            } catch (err) {
-                log("Error Host: " + err.message);
-            }
+            });
         };
 
-        // --- CLIENT LOGIC (HP) ---
         window.joinRoom = async () => {
             const inputId = document.getElementById('joinInput').value.toUpperCase();
             if (!user || !inputId) return;
-
             mode = 'receiver';
             roomId = inputId;
 
             landingPage.classList.add('hidden');
             activePage.classList.remove('hidden');
             document.getElementById('displayRoomId').textContent = roomId;
-            document.getElementById('roleBadge').textContent = "HP (REMOTE)";
+            document.getElementById('roleBadge').textContent = "HP (Monitor)";
             document.getElementById('mobileControls').classList.remove('hidden');
 
-            try {
-                const callDoc = doc(db, `calls/${roomId}`);
-                const snapshot = await getDoc(callDoc);
+            const callDoc = doc(db, `calls/${roomId}`);
+            const snapshot = await getDoc(callDoc);
 
-                if (!snapshot.exists()) {
-                    alert("ID Room tidak ditemukan!");
-                    window.location.reload();
-                    return;
-                }
-
-                await setupLocalAudio(true);
-                createPeerConnection();
-
-                peerConnection.onicecandidate = (event) => {
-                    if (event.candidate) {
-                        const col = collection(db, `calls/${roomId}/calleeCandidates`);
-                        addDoc(col, event.candidate.toJSON());
-                    }
-                };
-
-                const offerData = snapshot.data().offer;
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(offerData));
-
-                const answer = await peerConnection.createAnswer();
-                await peerConnection.setLocalDescription(answer);
-
-                await updateDoc(callDoc, {
-                    answer: { type: answer.type, sdp: answer.sdp }
-                });
-
-                const callerCandidates = collection(db, `calls/${roomId}/callerCandidates`);
-                onSnapshot(callerCandidates, (snapshot) => {
-                    snapshot.docChanges().forEach((change) => {
-                        if (change.type === 'added') {
-                            const candidate = new RTCIceCandidate(change.doc.data());
-                            peerConnection.addIceCandidate(candidate);
-                        }
-                    });
-                });
-
-            } catch (err) {
-                log("Error Join: " + err.message);
+            if (!snapshot.exists()) {
+                alert("Room ID Salah");
+                window.location.reload();
+                return;
             }
+
+            await setupLocalAudio(true); // Joiner Mic OFF default
+            createPeerConnection();
+
+            const offerCandidates = collection(db, `calls/${roomId}/callerCandidates`);
+            const answerCandidates = collection(db, `calls/${roomId}/calleeCandidates`);
+
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) addDoc(answerCandidates, event.candidate.toJSON());
+            };
+
+            const offerData = snapshot.data().offer;
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(offerData));
+
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+
+            await updateDoc(callDoc, { answer: { type: answer.type, sdp: answer.sdp } });
+
+            onSnapshot(offerCandidates, (snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === 'added') {
+                        const candidate = new RTCIceCandidate(change.doc.data());
+                        peerConnection.addIceCandidate(candidate);
+                    }
+                });
+            });
         };
 
-        // --- COMMON UTILS ---
         window.toggleMic = () => {
             if (mode !== 'receiver' || !localStream) return;
-            
             const track = localStream.getAudioTracks()[0];
-            if (track) {
-                track.enabled = !track.enabled;
-                isMuted = !track.enabled;
-                updateMicUI();
-            }
+            track.enabled = !track.enabled;
+            isMuted = !track.enabled;
+            updateMicUI();
         };
 
         function updateMicUI() {
-            if (mode === 'receiver') {
-                if (isMuted) {
-                    mobileMicBtn.className = "w-full py-8 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-95 bg-slate-800 text-slate-400 border border-slate-700";
-                    mobileMicBtn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i><span>MIC MATI (Dengar)</span>';
-                } else {
-                    mobileMicBtn.className = "w-full py-8 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-95 bg-emerald-600 text-white shadow-lg shadow-emerald-500/20";
-                    mobileMicBtn.innerHTML = '<i class="fa-solid fa-microphone animate-bounce"></i><span>SEDANG BICARA...</span>';
-                }
+            if (isMuted) {
+                mobileMicBtn.className = "w-full py-8 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 bg-slate-800 text-slate-400 border border-slate-700";
+                mobileMicBtn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i><span>MIC MATI</span>';
+            } else {
+                mobileMicBtn.className = "w-full py-8 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 bg-emerald-600 text-white shadow-lg shadow-emerald-500/20";
+                mobileMicBtn.innerHTML = '<i class="fa-solid fa-microphone animate-bounce"></i><span>BICARA...</span>';
             }
         }
     </script>
