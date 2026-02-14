@@ -99,7 +99,7 @@
                     <div class="flex items-center justify-between relative z-10">
                         <div>
                             <h3 class="text-lg font-bold text-white">Mode Laptop (Host)</h3>
-                            <p class="text-blue-100 text-xs mt-1">Mic Aktif + Google Camouflage</p>
+                            <p class="text-blue-100 text-xs mt-1">Gunakan ID Tetap</p>
                         </div>
                         <i class="fa-solid fa-laptop text-2xl text-white/80"></i>
                     </div>
@@ -138,14 +138,20 @@
                         <div class="mb-4">
                             <span id="roleBadge" class="text-[10px] uppercase tracking-wider font-bold bg-slate-800 px-2 py-1 rounded text-slate-400">Host</span>
                         </div>
-                        <h2 id="displayRoomId" class="text-4xl font-mono font-bold text-white tracking-wider mb-2 select-all">---</h2>
+                        <h2 id="displayRoomId" class="text-4xl font-mono font-bold text-white tracking-wider mb-2 select-all cursor-pointer" onclick="copyId()" title="Klik untuk salin">---</h2>
                         <p id="connectionText" class="text-xs text-emerald-400 font-medium tracking-wide animate-pulse">MENUNGGU KONEKSI...</p>
                     </div>
                 </div>
 
-                <button id="copyBtn" onclick="copyId()" class="hidden mx-auto bg-slate-800 hover:bg-slate-700 text-xs px-4 py-2 rounded-full flex items-center gap-2 text-slate-300 transition-colors">
-                    <i class="fa-regular fa-copy"></i> Salin ID
-                </button>
+                <div class="flex justify-center gap-3">
+                    <button id="copyBtn" onclick="copyId()" class="hidden bg-slate-800 hover:bg-slate-700 text-xs px-4 py-2 rounded-full flex items-center gap-2 text-slate-300 transition-colors">
+                        <i class="fa-regular fa-copy"></i> Salin ID
+                    </button>
+                    <!-- Tombol Reset ID Baru -->
+                    <button id="resetIdBtn" onclick="resetHostId()" class="hidden bg-slate-800 hover:bg-red-900/30 text-xs px-4 py-2 rounded-full flex items-center gap-2 text-red-400 border border-transparent hover:border-red-900 transition-colors">
+                        <i class="fa-solid fa-rotate"></i> Ganti ID Baru
+                    </button>
+                </div>
 
                 <!-- Kontrol Audio -->
                 <div class="grid gap-4 mt-6">
@@ -181,9 +187,7 @@
     </div>
 
     <!-- GOOGLE CAMOUFLAGE OVERLAY -->
-    <!-- Ini akan menutupi seluruh layar saat aktif -->
     <div id="googleOverlay" class="hidden google-overlay">
-        
         <!-- Google Header -->
         <div class="flex justify-end items-center p-4 gap-4 text-[13px] text-gray-600">
             <a href="#" class="hover:underline">Gmail</a>
@@ -198,23 +202,17 @@
 
         <!-- Google Main Body -->
         <div class="flex-1 flex flex-col items-center justify-center -mt-20 px-4">
-            <!-- Logo -->
             <img src="https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png" alt="Google" width="272" class="mb-8">
-            
-            <!-- Search Bar -->
             <div class="w-full max-w-[584px] h-[46px] rounded-full border border-gray-200 hover:shadow-md hover:border-gray-300 flex items-center px-4 gap-3 transition-shadow group">
                 <i class="fa-solid fa-magnifying-glass text-gray-400"></i>
                 <input type="text" class="flex-1 outline-none text-gray-700 text-[16px]" onclick="openYouTubeInNewTab()">
                 <img src="https://www.gstatic.com/images/branding/googlemic/2x/googlemic_color_24dp.png" alt="Mic" width="24" class="cursor-pointer">
                 <img src="https://www.gstatic.com/images/branding/product/1x/lens_camera_button_100_01_color_24dp.png" alt="Lens" width="24" class="cursor-pointer ml-2">
             </div>
-
-            <!-- Buttons -->
             <div class="mt-8 flex gap-3">
                 <button class="g-btn" onclick="openYouTubeInNewTab()">Penelusuran Google</button>
                 <button class="g-btn" onclick="openYouTubeInNewTab()">Saya Lagi Beruntung</button>
             </div>
-            
             <div class="mt-6 text-xs text-gray-500">
                 Google tersedia dalam bahasa: <a href="#" class="text-blue-700 hover:underline">English</a> <a href="#" class="text-blue-700 hover:underline">Jawa</a> <a href="#" class="text-blue-700 hover:underline">Bali</a>
             </div>
@@ -240,7 +238,6 @@
             </div>
         </div>
         
-        <!-- Tombol Tersembunyi untuk Kontrol App (Pojok Kiri Bawah) -->
         <button onclick="toggleCamouflage()" class="fixed bottom-0 left-0 w-20 h-20 opacity-0 cursor-default z-50" title="Toggle App UI"></button>
     </div>
 
@@ -250,7 +247,7 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
         import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
-        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, updateDoc, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
+        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, updateDoc, addDoc, serverTimestamp, deleteDoc } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
 
         // --- KONFIGURASI FIREBASE ---
         const firebaseConfig = {
@@ -303,34 +300,22 @@
         });
 
         // --- GOOGLE CAMOUFLAGE LOGIC ---
-        
-        // Fungsi untuk membuka YouTube di tab baru
         window.openYouTubeInNewTab = () => {
             window.open('https://www.youtube.com', '_blank');
         };
 
-        // Fungsi untuk mengaktifkan mode samaran
         window.activateGoogleMode = () => {
             googleOverlay.classList.remove('hidden');
-            // Kita sembunyikan visual App utama, tapi JANGAN display:none agar elemen audio tetap aman di beberapa browser
-            // Kita gunakan opacity 0 dan pointer-events none
             mainAppContainer.style.opacity = '0';
             mainAppContainer.style.pointerEvents = 'none';
-            mainAppContainer.style.position = 'fixed'; // Agar tidak memakan tempat scroll
-
-            // Coba buka YouTube otomatis
-            // Catatan: Browser mungkin memblokir ini jika tidak berasal dari klik langsung
+            mainAppContainer.style.position = 'fixed';
             try {
                 const newWindow = window.open('https://www.youtube.com', '_blank');
-                if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
-                    console.log("Popup blocked. User must click on page.");
-                }
             } catch (e) {
                 console.log("Auto-open failed", e);
             }
         };
 
-        // Tombol rahasia untuk kembali ke UI App (Klik pojok kiri bawah)
         window.toggleCamouflage = () => {
             if (googleOverlay.classList.contains('hidden')) {
                 activateGoogleMode();
@@ -377,16 +362,16 @@
                     connectionText.classList.remove('animate-pulse');
                     rippleEffect.classList.remove('hidden');
                     
-                    // JIKA MODE LAPTOP (HOST), AKTIFKAN KAMUFLASE
                     if (mode === 'sender') {
                         setTimeout(() => {
                             activateGoogleMode();
-                        }, 1500); // Delay sedikit agar user lihat status "Terhubung"
+                        }, 1500);
                     }
 
-                } else if (state === 'disconnected') {
-                    connectionText.textContent = "TERPUTUS";
+                } else if (state === 'disconnected' || state === 'failed') {
+                    connectionText.textContent = "TERPUTUS - REFRESH";
                     connectionText.classList.add('text-red-500');
+                    rippleEffect.classList.add('hidden');
                 }
             };
         }
@@ -402,26 +387,54 @@
         window.copyId = () => {
             navigator.clipboard.writeText(roomId);
             const btn = document.getElementById('copyBtn');
+            const originalText = btn.innerHTML;
             btn.innerHTML = '<i class="fa-solid fa-check"></i> Disalin';
             setTimeout(() => btn.innerHTML = '<i class="fa-regular fa-copy"></i> Salin ID', 2000);
+        };
+
+        // --- FITUR ID TETAP (LOCAL STORAGE) ---
+        function getStoredId() {
+            return localStorage.getItem('audiobridge_host_id');
+        }
+
+        function saveId(id) {
+            localStorage.setItem('audiobridge_host_id', id);
+        }
+
+        window.resetHostId = () => {
+            if(confirm("Buat ID baru? Koneksi lama dengan ID ini tidak akan bisa terhubung lagi.")) {
+                localStorage.removeItem('audiobridge_host_id');
+                window.location.reload();
+            }
         };
 
         // --- MAIN FUNCTIONS ---
         window.startHosting = async () => {
             if (!user) return;
             mode = 'sender';
-            roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+            // CEK APAKAH ADA ID TERSIMPAN
+            const storedId = getStoredId();
+            if (storedId) {
+                roomId = storedId;
+                log("Menggunakan ID Tersimpan: " + roomId);
+            } else {
+                roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
+                saveId(roomId);
+                log("Membuat ID Baru: " + roomId);
+            }
 
             landingPage.classList.add('hidden');
             activePage.classList.remove('hidden');
             document.getElementById('displayRoomId').textContent = roomId;
             document.getElementById('laptopControls').classList.remove('hidden');
             document.getElementById('copyBtn').classList.remove('hidden');
+            document.getElementById('resetIdBtn').classList.remove('hidden'); // Tampilkan tombol reset
 
-            await setupLocalAudio(false); // Host Mic ON
+            await setupLocalAudio(false); 
             createPeerConnection();
 
-            // Firestore Signaling Logic
+            // Firestore Logic
             const callDoc = doc(db, `calls/${roomId}`);
             const offerCandidates = collection(db, `calls/${roomId}/callerCandidates`);
             const answerCandidates = collection(db, `calls/${roomId}/calleeCandidates`);
@@ -433,6 +446,8 @@
             const offer = await peerConnection.createOffer();
             await peerConnection.setLocalDescription(offer);
 
+            // KITA OVERWRITE (TIMPA) DATA LAMA AGAR FRESH UNTUK KONEKSI BARU
+            // Walaupun ID sama, offer/answer harus baru
             await setDoc(callDoc, { 
                 offer: { type: offer.type, sdp: offer.sdp },
                 createdAt: serverTimestamp() 
@@ -472,12 +487,12 @@
             const snapshot = await getDoc(callDoc);
 
             if (!snapshot.exists()) {
-                alert("Room ID Salah");
+                alert("ID Tidak Ditemukan. Pastikan Laptop sudah ONLINE.");
                 window.location.reload();
                 return;
             }
 
-            await setupLocalAudio(true); // Joiner Mic OFF default
+            await setupLocalAudio(true); 
             createPeerConnection();
 
             const offerCandidates = collection(db, `calls/${roomId}/callerCandidates`);
