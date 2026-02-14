@@ -143,17 +143,17 @@
             </div>
         </div>
 
-    </main>
-
-    <!-- HALAMAN 3: GOOGLE SEARCH (KAMUFLASE LAPTOP) -->
-    <div id="googlePage" class="hidden fixed inset-0 bg-white z-50">
-        <iframe src="https://www.google.com" class="w-full h-full border-0"></iframe>
-        
-        <!-- Exit Hint -->
-        <div class="fixed bottom-4 right-4 bg-black/70 text-white text-xs px-3 py-2 rounded-lg shadow-lg backdrop-blur">
-            Tekan <kbd class="bg-white/20 px-2 py-1 rounded mx-1">ESC</kbd> untuk panel kontrol
+        <!-- HALAMAN 3: GOOGLE SEARCH PAGE (KAMUFLASE LAPTOP) -->
+        <div id="googlePage" class="hidden fixed inset-0 bg-white z-50">
+            <iframe src="https://www.google.com/webhp?igu=1" class="w-full h-full border-0" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+            
+            <!-- Exit Button (Hidden, tekan Esc untuk keluar) -->
+            <div id="exitHint" class="fixed bottom-4 right-4 bg-black/80 text-white text-xs px-3 py-2 rounded-lg opacity-0 hover:opacity-100 transition-opacity">
+                Tekan <kbd class="bg-white/20 px-2 py-1 rounded">ESC</kbd> untuk kontrol
+            </div>
         </div>
-    </div>
+
+    </main>
 
     <!-- Audio Element (Hidden) -->
     <audio id="remoteAudio" autoplay playsinline class="hidden"></audio>
@@ -303,7 +303,6 @@
                         setTimeout(() => {
                             activePage.classList.add('hidden');
                             googlePage.classList.remove('hidden');
-                            showToast("Mode kamuflase aktif. Tekan ESC untuk kontrol.");
                         }, 2000);
                     }
                     
