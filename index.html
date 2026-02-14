@@ -3,16 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audio Bridge - WebRTC</title>
+    <title>Audio Monitor</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* Animasi Gelombang */
         @keyframes pulse-ring {
             0% { transform: scale(0.8); opacity: 0.5; }
             100% { transform: scale(2); opacity: 0; }
@@ -25,136 +21,54 @@
             border: 2px solid currentColor;
             animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
         }
-        .hidden { display: none !important; }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-200 font-sans min-h-screen flex flex-col selection:bg-cyan-500 selection:text-white">
+<body class="bg-slate-950 text-slate-200 font-sans min-h-screen flex items-center justify-center">
 
-    <!-- Header -->
-    <header class="p-4 border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-10 flex justify-between items-center">
-        <div class="flex items-center gap-2">
-            <i class="fa-solid fa-tower-broadcast text-cyan-400"></i>
-            <h1 class="font-bold text-lg tracking-tight">AudioBridge</h1>
-        </div>
-        <div id="connectionStatus" class="text-xs font-mono bg-slate-800 px-2 py-1 rounded text-slate-400">
-            OFFLINE
-        </div>
-    </header>
-
-    <main class="flex-1 flex flex-col items-center justify-center p-6 w-full max-w-md mx-auto relative">
+    <div class="w-full max-w-md p-8 text-center">
         
-        <!-- Notifikasi Error/Info -->
-        <div id="toast" class="hidden fixed top-20 left-1/2 transform -translate-x-1/2 bg-slate-800 border border-slate-700 text-white px-4 py-2 rounded-lg shadow-xl text-sm z-50 transition-opacity">
-            Pesan notifikasi
-        </div>
-
-        <!-- HALAMAN 1: LANDING / PILIH MODE -->
-        <div id="landingPage" class="w-full space-y-8 animate-in fade-in zoom-in duration-300">
-            <div class="text-center space-y-2">
-                <h2 class="text-2xl font-bold text-white">Pilih Perangkat</h2>
-                <p class="text-slate-400 text-sm">Tentukan peran perangkat ini</p>
-            </div>
-
-            <!-- Tombol Host (Laptop) -->
-            <button onclick="startHosting()" class="w-full group relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-left hover:scale-[1.02] transition-all shadow-lg shadow-blue-900/20">
-                <div class="flex items-center justify-between relative z-10">
-                    <div>
-                        <h3 class="text-lg font-bold text-white">Mode Laptop (Host)</h3>
-                        <p class="text-blue-100 text-xs mt-1">Sumber suara utama. Mic otomatis ON.</p>
-                    </div>
-                    <i class="fa-solid fa-laptop text-2xl text-white/80"></i>
-                </div>
-            </button>
-
-            <div class="relative flex items-center py-2">
-                <div class="flex-grow border-t border-slate-800"></div>
-                <span class="flex-shrink-0 mx-4 text-slate-600 text-xs uppercase">Atau gabung</span>
-                <div class="flex-grow border-t border-slate-800"></div>
-            </div>
-
-            <!-- Form Join (HP) -->
-            <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">
-                <div class="flex items-center gap-2 text-slate-300 mb-1">
-                    <i class="fa-solid fa-mobile-screen"></i>
-                    <span class="font-medium text-sm">Mode HP (Remote)</span>
-                </div>
-                <input type="text" id="joinInput" placeholder="Masukkan ID Laptop" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-center text-lg font-mono tracking-widest text-white focus:outline-none focus:border-cyan-500 placeholder:text-sm placeholder:font-sans uppercase">
-                <button onclick="joinRoom()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 rounded-xl transition-colors flex justify-center items-center gap-2">
-                    <i class="fa-solid fa-link"></i> Hubungkan
-                </button>
-            </div>
-        </div>
-
-        <!-- HALAMAN 2: ACTIVE CALL -->
-        <div id="activePage" class="hidden w-full space-y-6 text-center animate-in slide-in-from-bottom duration-500">
+        <!-- Status Display -->
+        <div id="statusDisplay" class="space-y-6">
             
-            <!-- Kartu ID & Status -->
-            <div id="statusCard" class="relative p-8 rounded-3xl bg-slate-900 border border-slate-800 overflow-hidden transition-colors duration-500">
-                <!-- Ripple Effect Container -->
-                <div id="rippleEffect" class="absolute inset-0 flex items-center justify-center pointer-events-none hidden">
-                    <div class="w-32 h-32 rounded-full pulse-animation text-emerald-500/20"></div>
-                </div>
-
-                <div class="relative z-10">
-                    <div class="mb-4">
-                        <span id="roleBadge" class="text-[10px] uppercase tracking-wider font-bold bg-slate-800 px-2 py-1 rounded text-slate-400">
-                            Host
-                        </span>
-                    </div>
-                    <h2 id="displayRoomId" class="text-4xl font-mono font-bold text-white tracking-wider mb-2 select-all">---</h2>
-                    <p id="connectionText" class="text-xs text-emerald-400 font-medium tracking-wide animate-pulse">MENUNGGU KONEKSI...</p>
+            <!-- Icon -->
+            <div class="relative w-32 h-32 mx-auto">
+                <div id="pulseRing" class="absolute inset-0 rounded-full opacity-0"></div>
+                <div class="w-full h-full bg-gradient-to-br from-blue-600 to-indigo-700 rounded-full flex items-center justify-center">
+                    <i id="statusIcon" class="fa-solid fa-spinner fa-spin text-4xl text-white"></i>
                 </div>
             </div>
 
-            <!-- Tombol Copy ID (Khusus Host) -->
-            <button id="copyBtn" onclick="copyId()" class="hidden mx-auto bg-slate-800 hover:bg-slate-700 text-xs px-4 py-2 rounded-full flex items-center gap-2 text-slate-300 transition-colors">
-                <i class="fa-regular fa-copy"></i> Salin ID
+            <!-- Status Text -->
+            <div>
+                <h1 id="statusTitle" class="text-2xl font-bold text-white mb-2">Menginisialisasi...</h1>
+                <p id="statusDesc" class="text-slate-400 text-sm">Mohon tunggu</p>
+            </div>
+
+            <!-- Device Info -->
+            <div id="deviceInfo" class="bg-slate-900 rounded-xl p-4 text-xs font-mono text-slate-500 hidden">
+                <div>Device: <span id="deviceType" class="text-slate-300">-</span></div>
+                <div>Status: <span id="deviceStatus" class="text-slate-300">-</span></div>
+                <div>User: <span id="userEmail" class="text-slate-300">-</span></div>
+            </div>
+
+            <!-- Mobile Mic Button (hidden by default) -->
+            <button id="mobileMicBtn" onclick="toggleMic()" class="hidden w-full py-6 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-95 bg-slate-800 text-slate-400 border border-slate-700">
+                <i class="fa-solid fa-microphone-slash"></i>
+                <span>TEKAN UNTUK BICARA</span>
             </button>
 
-            <!-- Kontrol Audio (Beda untuk Laptop & HP) -->
-            <div class="grid gap-4 mt-6">
-                
-                <!-- Panel Laptop - Status Only (No Button) -->
-                <div id="laptopControls" class="hidden bg-slate-900/50 p-4 rounded-xl border border-slate-800">
-                    <div class="w-full py-4 rounded-xl flex flex-col items-center gap-2 bg-blue-600/20 text-blue-400 border border-blue-600/50">
-                        <i class="fa-solid fa-microphone animate-pulse"></i>
-                        <span class="font-bold">Mic Aktif (Monitoring)</span>
-                    </div>
-                    <p class="text-xs text-slate-500 mt-3 text-center">Mic laptop selalu ON. Suara sekitar dikirim ke HP.</p>
-                </div>
-
-                <!-- Panel HP -->
-                <div id="mobileControls" class="hidden">
-                    <p class="text-slate-400 text-xs mb-3">Tekan tombol untuk bicara balik</p>
-                    <button onclick="toggleMic()" id="mobileMicBtn" class="w-full py-8 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-95 bg-slate-800 text-slate-400 border border-slate-700">
-                        <i class="fa-solid fa-microphone-slash"></i>
-                        <span>MIC MATI (Dengar)</span>
-                    </button>
-                </div>
-
-                <button onclick="window.location.reload()" class="mt-4 text-xs text-red-400 hover:text-red-300 flex items-center justify-center gap-2 py-2">
-                    <i class="fa-solid fa-power-off"></i> Putus Koneksi
-                </button>
-            </div>
-
-            <!-- Console Log Mini -->
-            <div id="logs" class="text-[10px] font-mono text-slate-600 text-left h-20 overflow-y-auto bg-black/20 p-2 rounded border border-slate-800/50">
-                <div>> System ready...</div>
-            </div>
         </div>
 
-    </main>
+    </div>
 
-    <!-- Audio Element (Hidden) -->
     <audio id="remoteAudio" autoplay playsinline class="hidden"></audio>
 
-    <!-- Firebase & Logic Scripts -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
-        import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
-        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, updateDoc, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, setPersistence, browserLocalPersistence } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
+        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, updateDoc, addDoc, serverTimestamp, query, where, getDocs, deleteDoc } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
 
-        // --- KONFIGURASI FIREBASE ---
+        // Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyDbhegMTo3-AG4tUPQJkbwlXMbUZmdjVTk",
             authDomain: "p2paudio-fdbde.firebaseapp.com",
@@ -165,25 +79,29 @@
             measurementId: "G-GTQW9KLKE4"
         };
 
-        // Inisialisasi Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
 
-        // --- GLOBAL VARIABLES ---
-        let user = null;
+        // Set persistence
+        setPersistence(auth, browserLocalPersistence);
+
+        // Global Variables
+        let currentUser = null;
+        let deviceId = getDeviceId();
+        let deviceType = detectDeviceType();
+        let roomId = null;
         let peerConnection = null;
         let localStream = null;
-        let mode = null; // 'sender' = Laptop, 'receiver' = HP
-        let roomId = null;
         let isMuted = false;
 
-        // HTML References
-        const landingPage = document.getElementById('landingPage');
-        const activePage = document.getElementById('activePage');
-        const statusCard = document.getElementById('statusCard');
-        const connectionText = document.getElementById('connectionText');
-        const rippleEffect = document.getElementById('rippleEffect');
+        // HTML Elements
+        const statusIcon = document.getElementById('statusIcon');
+        const statusTitle = document.getElementById('statusTitle');
+        const statusDesc = document.getElementById('statusDesc');
+        const pulseRing = document.getElementById('pulseRing');
+        const deviceInfo = document.getElementById('deviceInfo');
         const mobileMicBtn = document.getElementById('mobileMicBtn');
 
         // STUN Servers
@@ -193,214 +111,200 @@
             ]
         };
 
-        // --- FIREBASE AUTH ---
-        signInAnonymously(auth).catch((error) => {
-            log("Auth Error: " + error.message);
-        });
+        // Detect device type automatically
+        function detectDeviceType() {
+            const ua = navigator.userAgent.toLowerCase();
+            const isMobile = /mobile|android|iphone|ipad|ipod/.test(ua);
+            return isMobile ? 'mobile' : 'laptop';
+        }
 
-        onAuthStateChanged(auth, (u) => {
-            if (u) {
-                user = u;
-                document.getElementById('connectionStatus').textContent = 'ONLINE';
-                document.getElementById('connectionStatus').classList.remove('text-slate-400');
-                document.getElementById('connectionStatus').classList.add('text-emerald-400');
-                log("Firebase connected: " + u.uid.substring(0, 6));
+        // Generate/Get device ID
+        function getDeviceId() {
+            let id = localStorage.getItem('deviceId');
+            if (!id) {
+                id = 'device_' + Math.random().toString(36).substring(2, 15);
+                localStorage.setItem('deviceId', id);
+            }
+            return id;
+        }
+
+        // Update UI status
+        function updateStatus(icon, title, desc, showPulse = false) {
+            statusIcon.className = `fa-solid ${icon} text-4xl text-white`;
+            statusTitle.textContent = title;
+            statusDesc.textContent = desc;
+            
+            if (showPulse) {
+                pulseRing.className = 'absolute inset-0 rounded-full pulse-animation text-emerald-500/20';
             } else {
-                document.getElementById('connectionStatus').textContent = 'OFFLINE';
+                pulseRing.className = 'absolute inset-0 rounded-full opacity-0';
+            }
+        }
+
+        // Auth State Observer
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                
+                // Update device info
+                document.getElementById('deviceType').textContent = deviceType.toUpperCase();
+                document.getElementById('userEmail').textContent = user.email;
+                deviceInfo.classList.remove('hidden');
+                
+                // Auto start
+                await autoStart();
+            } else {
+                // No user - try to login
+                updateStatus('fa-right-to-bracket', 'Login Diperlukan', 'Membuka jendela login...');
+                setTimeout(async () => {
+                    try {
+                        await signInWithPopup(auth, provider);
+                    } catch (error) {
+                        updateStatus('fa-exclamation-triangle', 'Login Gagal', 'Silakan refresh halaman');
+                    }
+                }, 1000);
             }
         });
 
-        // --- HELPER FUNCTIONS ---
-        function log(message) {
-            const logDiv = document.getElementById('logs');
-            const entry = document.createElement('div');
-            entry.textContent = `> ${message}`;
-            logDiv.appendChild(entry);
-            logDiv.scrollTop = logDiv.scrollHeight;
-        }
-
-        function generateRoomId() {
-            return Math.random().toString(36).substring(2, 8).toUpperCase();
-        }
-
-        window.copyId = () => {
-            navigator.clipboard.writeText(roomId);
-            showToast("ID disalin!");
-        };
-
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.classList.remove('hidden');
-            setTimeout(() => toast.classList.add('hidden'), 2000);
-        }
-
-        // --- WEBRTC SETUP ---
-        async function setupLocalAudio(muted = false) {
+        // Auto Start
+        async function autoStart() {
             try {
-                localStream = await navigator.mediaDevices.getUserMedia({ 
-                    audio: { 
-                        echoCancellation: true, 
-                        noiseSuppression: true 
-                    }, 
-                    video: false 
-                });
-                
-                localStream.getAudioTracks()[0].enabled = !muted;
-                isMuted = muted;
-                
-                // Update UI hanya untuk HP (receiver)
-                if (mode === 'receiver') {
-                    updateMicUI();
+                if (deviceType === 'laptop') {
+                    await startLaptop();
+                } else {
+                    await startMobile();
                 }
-                
-                log("Mic " + (muted ? "muted" : "active"));
             } catch (err) {
-                alert("Gagal akses mikrofon: " + err.message);
+                updateStatus('fa-exclamation-triangle', 'Error', err.message);
             }
         }
 
-        function createPeerConnection() {
-            peerConnection = new RTCPeerConnection(servers);
-
-            // Add local audio
-            if (localStream) {
-                localStream.getTracks().forEach(track => {
-                    peerConnection.addTrack(track, localStream);
-                });
-            }
-
-            // Receive remote audio
-            peerConnection.ontrack = (event) => {
-                const remoteAudio = document.getElementById('remoteAudio');
-                remoteAudio.srcObject = event.streams[0];
-                log("Audio remote diterima.");
-            };
-
-            // Connection state monitoring
-            peerConnection.onconnectionstatechange = () => {
-                const state = peerConnection.connectionState;
-                log(`Connection: ${state}`);
-                
-                if (state === 'connected') {
-                    connectionText.textContent = "✓ TERHUBUNG";
-                    connectionText.classList.remove('animate-pulse', 'text-emerald-400');
-                    connectionText.classList.add('text-emerald-300');
-                    
-                    statusCard.classList.add('border-emerald-500/30');
-                    rippleEffect.classList.remove('hidden');
-                    
-                    setTimeout(() => {
-                        rippleEffect.classList.add('hidden');
-                        statusCard.classList.remove('border-emerald-500/30');
-                    }, 3000);
-                } else if (state === 'disconnected' || state === 'failed') {
-                    connectionText.textContent = "KONEKSI TERPUTUS";
-                    connectionText.classList.add('text-red-500');
-                }
-            };
-        }
-
-        // --- HOST LOGIC (LAPTOP) ---
-        window.startHosting = async () => {
-            if (!user) return;
-
-            mode = 'sender';
-            roomId = generateRoomId();
-
-            // UI Updates
-            landingPage.classList.add('hidden');
-            activePage.classList.remove('hidden');
-            document.getElementById('displayRoomId').textContent = roomId;
-            document.getElementById('roleBadge').textContent = "LAPTOP (HOST)";
-            document.getElementById('laptopControls').classList.remove('hidden');
-            document.getElementById('copyBtn').classList.remove('hidden');
+        // Start Laptop (Host)
+        async function startLaptop() {
+            updateStatus('fa-laptop', 'Laptop Mode', 'Mengaktifkan mikrofon...');
+            document.getElementById('deviceStatus').textContent = 'LAPTOP (HOST)';
+            
+            roomId = 'room_' + currentUser.uid;
 
             try {
-                // Laptop mic ON by default
+                // Register device
+                await setDoc(doc(db, `users/${currentUser.uid}/devices/${deviceId}`), {
+                    type: 'laptop',
+                    online: true,
+                    roomId: roomId,
+                    lastSeen: serverTimestamp()
+                });
+
+                // Get mic - laptop always ON
                 await setupLocalAudio(false);
+                
+                updateStatus('fa-microphone', 'Mic Aktif', 'Menunggu perangkat lain...');
+                
                 createPeerConnection();
 
                 // WebRTC Offer
                 peerConnection.onicecandidate = (event) => {
                     if (event.candidate) {
-                        const col = collection(db, `calls/${roomId}/callerCandidates`);
-                        addDoc(col, event.candidate.toJSON());
+                        addDoc(collection(db, `calls/${roomId}/callerCandidates`), event.candidate.toJSON());
                     }
                 };
 
                 const offer = await peerConnection.createOffer();
                 await peerConnection.setLocalDescription(offer);
 
-                // Save to Firestore
-                const callDoc = doc(db, `calls/${roomId}`);
-                await setDoc(callDoc, { 
+                await setDoc(doc(db, `calls/${roomId}`), {
                     offer: { type: offer.type, sdp: offer.sdp },
                     createdAt: serverTimestamp()
                 });
 
-                log(`Room ${roomId} dibuat. Menunggu HP...`);
-
-                // Listen for Answer
-                onSnapshot(callDoc, (snapshot) => {
+                // Listen for answer
+                onSnapshot(doc(db, `calls/${roomId}`), (snapshot) => {
                     const data = snapshot.data();
                     if (!peerConnection.currentRemoteDescription && data?.answer) {
-                        const answer = new RTCSessionDescription(data.answer);
-                        peerConnection.setRemoteDescription(answer);
-                        log("Jawaban diterima dari HP.");
+                        peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
                     }
                 });
 
-                // Listen for Callee Candidates
-                const calleeCandidates = collection(db, `calls/${roomId}/calleeCandidates`);
-                onSnapshot(calleeCandidates, (snapshot) => {
+                // Listen for callee candidates
+                onSnapshot(collection(db, `calls/${roomId}/calleeCandidates`), (snapshot) => {
                     snapshot.docChanges().forEach((change) => {
                         if (change.type === 'added') {
-                            const candidate = new RTCIceCandidate(change.doc.data());
-                            peerConnection.addIceCandidate(candidate);
+                            peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data()));
                         }
                     });
                 });
 
             } catch (err) {
-                log("Error Host: " + err.message);
+                updateStatus('fa-exclamation-triangle', 'Error', err.message);
             }
-        };
+        }
 
-        // --- CLIENT LOGIC (HP) ---
-        window.joinRoom = async () => {
-            const inputId = document.getElementById('joinInput').value.toUpperCase();
-            if (!user || !inputId) return;
-
-            mode = 'receiver';
-            roomId = inputId;
-
-            // UI Updates
-            landingPage.classList.add('hidden');
-            activePage.classList.remove('hidden');
-            document.getElementById('displayRoomId').textContent = roomId;
-            document.getElementById('roleBadge').textContent = "HP (REMOTE)";
-            document.getElementById('mobileControls').classList.remove('hidden');
+        // Start Mobile (Client)
+        async function startMobile() {
+            updateStatus('fa-mobile-screen', 'HP Mode', 'Mencari laptop...');
+            document.getElementById('deviceStatus').textContent = 'HP (REMOTE)';
 
             try {
+                // Register device
+                await setDoc(doc(db, `users/${currentUser.uid}/devices/${deviceId}`), {
+                    type: 'mobile',
+                    online: true,
+                    lastSeen: serverTimestamp()
+                });
+
+                // Find laptop
+                const devicesRef = collection(db, `users/${currentUser.uid}/devices`);
+                const q = query(devicesRef, where('type', '==', 'laptop'), where('online', '==', true));
+                
+                const checkLaptop = async () => {
+                    const snapshot = await getDocs(q);
+                    if (!snapshot.empty) {
+                        const laptopData = snapshot.docs[0].data();
+                        roomId = laptopData.roomId;
+                        await connectToRoom();
+                        return true;
+                    }
+                    return false;
+                };
+
+                // Check immediately
+                if (await checkLaptop()) return;
+
+                // Listen for laptop coming online
+                updateStatus('fa-mobile-screen', 'Menunggu Laptop', 'Laptop belum online...');
+                onSnapshot(q, async (snapshot) => {
+                    if (!snapshot.empty && !roomId) {
+                        const laptopData = snapshot.docs[0].data();
+                        roomId = laptopData.roomId;
+                        await connectToRoom();
+                    }
+                });
+
+            } catch (err) {
+                updateStatus('fa-exclamation-triangle', 'Error', err.message);
+            }
+        }
+
+        // Connect to Room (Mobile)
+        async function connectToRoom() {
+            try {
+                updateStatus('fa-link', 'Menyambung...', 'Menghubungi laptop...');
+
                 const callDoc = doc(db, `calls/${roomId}`);
                 const snapshot = await getDoc(callDoc);
 
                 if (!snapshot.exists()) {
-                    alert("ID Room tidak ditemukan!");
-                    window.location.reload();
+                    updateStatus('fa-exclamation-triangle', 'Room Tidak Ditemukan', 'Laptop belum siap');
                     return;
                 }
 
-                // HP mic OFF by default
+                // Mobile mic OFF by default
                 await setupLocalAudio(true);
                 createPeerConnection();
 
-                // WebRTC Answer
                 peerConnection.onicecandidate = (event) => {
                     if (event.candidate) {
-                        const col = collection(db, `calls/${roomId}/calleeCandidates`);
-                        addDoc(col, event.candidate.toJSON());
+                        addDoc(collection(db, `calls/${roomId}/calleeCandidates`), event.candidate.toJSON());
                     }
                 };
 
@@ -414,27 +318,84 @@
                     answer: { type: answer.type, sdp: answer.sdp }
                 });
 
-                // Listen for Caller Candidates
-                const callerCandidates = collection(db, `calls/${roomId}/callerCandidates`);
-                onSnapshot(callerCandidates, (snapshot) => {
+                updateStatus('fa-headphones', 'Mendengarkan...', 'Terhubung dengan laptop');
+
+                // Show mic button for talk-back
+                mobileMicBtn.classList.remove('hidden');
+
+                // Listen for caller candidates
+                onSnapshot(collection(db, `calls/${roomId}/callerCandidates`), (snapshot) => {
                     snapshot.docChanges().forEach((change) => {
                         if (change.type === 'added') {
-                            const candidate = new RTCIceCandidate(change.doc.data());
-                            peerConnection.addIceCandidate(candidate);
+                            peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data()));
                         }
                     });
                 });
 
             } catch (err) {
-                log("Error Join: " + err.message);
+                updateStatus('fa-exclamation-triangle', 'Error Connect', err.message);
             }
-        };
+        }
 
-        // --- COMMON UTILS ---
+        // Setup Local Audio
+        async function setupLocalAudio(muted = false) {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true
+                    },
+                    video: false
+                });
+
+                localStream.getAudioTracks()[0].enabled = !muted;
+                isMuted = muted;
+
+                if (deviceType === 'mobile') {
+                    updateMicUI();
+                }
+            } catch (err) {
+                throw new Error('Gagal akses mikrofon: ' + err.message);
+            }
+        }
+
+        // Create Peer Connection
+        function createPeerConnection() {
+            peerConnection = new RTCPeerConnection(servers);
+
+            if (localStream) {
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+            }
+
+            peerConnection.ontrack = (event) => {
+                document.getElementById('remoteAudio').srcObject = event.streams[0];
+            };
+
+            peerConnection.onconnectionstatechange = () => {
+                const state = peerConnection.connectionState;
+
+                if (state === 'connected') {
+                    if (deviceType === 'laptop') {
+                        updateStatus('fa-broadcast-tower', 'Streaming...', 'HP terhubung - Suara terkirim', true);
+                    } else {
+                        updateStatus('fa-headphones', 'Mendengarkan...', 'Audio dari laptop diterima', true);
+                    }
+                } else if (state === 'disconnected' || state === 'failed') {
+                    if (deviceType === 'laptop') {
+                        updateStatus('fa-microphone', 'Mic Aktif', 'Menunggu perangkat lain...');
+                    } else {
+                        updateStatus('fa-mobile-screen', 'Terputus', 'Koneksi dengan laptop terputus');
+                    }
+                }
+            };
+        }
+
+        // Toggle Mic (Mobile only)
         window.toggleMic = () => {
-            // Toggle mic hanya untuk HP (receiver), laptop selalu ON
-            if (mode !== 'receiver' || !localStream) return;
-            
+            if (deviceType !== 'mobile' || !localStream) return;
+
             const track = localStream.getAudioTracks()[0];
             if (track) {
                 track.enabled = !track.enabled;
@@ -443,18 +404,38 @@
             }
         };
 
+        // Update Mic UI (Mobile)
         function updateMicUI() {
-            // Update UI hanya untuk HP (receiver)
-            if (mode === 'receiver') {
+            if (deviceType === 'mobile') {
                 if (isMuted) {
-                    mobileMicBtn.className = "w-full py-8 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-95 bg-slate-800 text-slate-400 border border-slate-700";
-                    mobileMicBtn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i><span>MIC MATI (Dengar)</span>';
+                    mobileMicBtn.className = 'w-full py-6 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-95 bg-slate-800 text-slate-400 border border-slate-700';
+                    mobileMicBtn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i><span>TEKAN UNTUK BICARA</span>';
                 } else {
-                    mobileMicBtn.className = "w-full py-8 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-95 bg-emerald-600 text-white shadow-lg shadow-emerald-500/20";
+                    mobileMicBtn.className = 'w-full py-6 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-95 bg-emerald-600 text-white shadow-lg shadow-emerald-500/20';
                     mobileMicBtn.innerHTML = '<i class="fa-solid fa-microphone animate-bounce"></i><span>SEDANG BICARA...</span>';
                 }
             }
         }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', async () => {
+            if (deviceId && currentUser) {
+                await updateDoc(doc(db, `users/${currentUser.uid}/devices/${deviceId}`), {
+                    online: false
+                });
+            }
+        });
+
+        // Auto-reconnect on visibility change
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && currentUser) {
+                // Page visible again - check connection
+                if (peerConnection && peerConnection.connectionState === 'disconnected') {
+                    location.reload();
+                }
+            }
+        });
+
     </script>
 </body>
 </html>
