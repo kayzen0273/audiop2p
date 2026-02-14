@@ -35,6 +35,9 @@
         <div class="flex items-center gap-2">
             <i class="fa-solid fa-tower-broadcast text-cyan-400"></i>
             <h1 class="font-bold text-lg tracking-tight">AudioBridge</h1>
+            <span id="sessionBadge" class="hidden text-[9px] uppercase tracking-wider font-bold bg-emerald-900/30 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30">
+                <i class="fa-solid fa-link"></i> Session Aktif
+            </span>
         </div>
         <div id="connectionStatus" class="text-xs font-mono bg-slate-800 px-2 py-1 rounded text-slate-400">
             OFFLINE
@@ -132,7 +135,7 @@
                     </button>
                 </div>
 
-                <button onclick="window.location.reload()" class="mt-4 text-xs text-red-400 hover:text-red-300 flex items-center justify-center gap-2 py-2">
+                <button onclick="disconnectSession()" class="mt-4 text-xs text-red-400 hover:text-red-300 flex items-center justify-center gap-2 py-2">
                     <i class="fa-solid fa-power-off"></i> Putus Koneksi
                 </button>
             </div>
@@ -140,6 +143,7 @@
             <!-- Console Log Mini -->
             <div id="logs" class="text-[10px] font-mono text-slate-600 text-left h-20 overflow-y-auto bg-black/20 p-2 rounded border border-slate-800/50">
                 <div>> System ready...</div>
+                <div class="text-emerald-400">> Koneksi otomatis tersimpan. Refresh tidak akan memutuskan.</div>
             </div>
         </div>
 
@@ -217,6 +221,17 @@
                 document.getElementById('connectionStatus').classList.remove('text-slate-400');
                 document.getElementById('connectionStatus').classList.add('text-emerald-400');
                 log("Firebase connected: " + u.uid.substring(0, 6));
+                
+                // Auto-reconnect jika ada session tersimpan
+                const session = loadSession();
+                if (session) {
+                    log("Session ditemukan. Reconnecting...");
+                    if (session.mode === 'sender') {
+                        reconnectAsHost(session.roomId);
+                    } else if (session.mode === 'receiver') {
+                        reconnectAsClient(session.roomId);
+                    }
+                }
             } else {
                 document.getElementById('connectionStatus').textContent = 'OFFLINE';
             }
@@ -245,6 +260,37 @@
             toast.textContent = message;
             toast.classList.remove('hidden');
             setTimeout(() => toast.classList.add('hidden'), 2000);
+        }
+
+        // --- SESSION MANAGEMENT ---
+        function saveSession(sessionMode, sessionRoomId) {
+            localStorage.setItem('p2p_session', JSON.stringify({
+                mode: sessionMode,
+                roomId: sessionRoomId,
+                timestamp: Date.now()
+            }));
+            log("Session disimpan.");
+        }
+
+        function loadSession() {
+            const saved = localStorage.getItem('p2p_session');
+            if (saved) {
+                try {
+                    const session = JSON.parse(saved);
+                    // Session valid 24 jam
+                    if (Date.now() - session.timestamp < 24 * 60 * 60 * 1000) {
+                        return session;
+                    }
+                } catch (e) {
+                    console.error("Error parsing session:", e);
+                }
+            }
+            return null;
+        }
+
+        function clearSession() {
+            localStorage.removeItem('p2p_session');
+            log("Session dihapus.");
         }
 
         // --- WEBRTC SETUP ---
@@ -331,6 +377,7 @@
             document.getElementById('roleBadge').textContent = "LAPTOP (HOST)";
             document.getElementById('laptopControls').classList.remove('hidden');
             document.getElementById('copyBtn').classList.remove('hidden');
+            document.getElementById('sessionBadge').classList.remove('hidden');
 
             try {
                 // Laptop mic ON by default
@@ -354,6 +401,9 @@
                     offer: { type: offer.type, sdp: offer.sdp },
                     createdAt: serverTimestamp()
                 });
+
+                // Simpan session
+                saveSession('sender', roomId);
 
                 log(`Room ${roomId} dibuat. Menunggu HP...`);
 
@@ -397,6 +447,7 @@
             document.getElementById('displayRoomId').textContent = roomId;
             document.getElementById('roleBadge').textContent = "HP (REMOTE)";
             document.getElementById('mobileControls').classList.remove('hidden');
+            document.getElementById('sessionBadge').classList.remove('hidden');
 
             try {
                 const callDoc = doc(db, `calls/${roomId}`);
@@ -430,6 +481,9 @@
                     answer: { type: answer.type, sdp: answer.sdp }
                 });
 
+                // Simpan session
+                saveSession('receiver', roomId);
+
                 // Listen for Caller Candidates
                 const callerCandidates = collection(db, `calls/${roomId}/callerCandidates`);
                 onSnapshot(callerCandidates, (snapshot) => {
@@ -446,7 +500,148 @@
             }
         };
 
+        // --- RECONNECT LOGIC ---
+        async function reconnectAsHost(savedRoomId) {
+            mode = 'sender';
+            roomId = savedRoomId;
+
+            // UI Updates
+            landingPage.classList.add('hidden');
+            activePage.classList.remove('hidden');
+            document.getElementById('displayRoomId').textContent = roomId;
+            document.getElementById('roleBadge').textContent = "LAPTOP (HOST)";
+            document.getElementById('laptopControls').classList.remove('hidden');
+            document.getElementById('copyBtn').classList.remove('hidden');
+            document.getElementById('sessionBadge').classList.remove('hidden');
+
+            try {
+                // Laptop mic ON by default
+                await setupLocalAudio(false);
+                createPeerConnection();
+
+                // WebRTC Offer
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        const col = collection(db, `calls/${roomId}/callerCandidates`);
+                        addDoc(col, event.candidate.toJSON());
+                    }
+                };
+
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+
+                // Update Firestore (jika belum ada, create; jika sudah ada, update offer)
+                const callDoc = doc(db, `calls/${roomId}`);
+                await setDoc(callDoc, { 
+                    offer: { type: offer.type, sdp: offer.sdp },
+                    createdAt: serverTimestamp()
+                }, { merge: true });
+
+                log(`Reconnected sebagai Host: ${roomId}`);
+
+                // Listen for Answer
+                onSnapshot(callDoc, (snapshot) => {
+                    const data = snapshot.data();
+                    if (!peerConnection.currentRemoteDescription && data?.answer) {
+                        const answer = new RTCSessionDescription(data.answer);
+                        peerConnection.setRemoteDescription(answer);
+                        log("Jawaban diterima dari HP.");
+                    }
+                });
+
+                // Listen for Callee Candidates
+                const calleeCandidates = collection(db, `calls/${roomId}/calleeCandidates`);
+                onSnapshot(calleeCandidates, (snapshot) => {
+                    snapshot.docChanges().forEach((change) => {
+                        if (change.type === 'added') {
+                            const candidate = new RTCIceCandidate(change.doc.data());
+                            peerConnection.addIceCandidate(candidate);
+                        }
+                    });
+                });
+
+            } catch (err) {
+                log("Error Reconnect Host: " + err.message);
+            }
+        }
+
+        async function reconnectAsClient(savedRoomId) {
+            mode = 'receiver';
+            roomId = savedRoomId;
+
+            // UI Updates
+            landingPage.classList.add('hidden');
+            activePage.classList.remove('hidden');
+            document.getElementById('displayRoomId').textContent = roomId;
+            document.getElementById('roleBadge').textContent = "HP (REMOTE)";
+            document.getElementById('mobileControls').classList.remove('hidden');
+            document.getElementById('sessionBadge').classList.remove('hidden');
+
+            try {
+                const callDoc = doc(db, `calls/${roomId}`);
+                const snapshot = await getDoc(callDoc);
+
+                if (!snapshot.exists()) {
+                    log("Room tidak ditemukan, session expired.");
+                    clearSession();
+                    window.location.reload();
+                    return;
+                }
+
+                // HP mic OFF by default
+                await setupLocalAudio(true);
+                createPeerConnection();
+
+                // WebRTC Answer
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        const col = collection(db, `calls/${roomId}/calleeCandidates`);
+                        addDoc(col, event.candidate.toJSON());
+                    }
+                };
+
+                const offerData = snapshot.data().offer;
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(offerData));
+
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+
+                await updateDoc(callDoc, {
+                    answer: { type: answer.type, sdp: answer.sdp }
+                });
+
+                log(`Reconnected sebagai Client: ${roomId}`);
+
+                // Listen for Caller Candidates
+                const callerCandidates = collection(db, `calls/${roomId}/callerCandidates`);
+                onSnapshot(callerCandidates, (snapshot) => {
+                    snapshot.docChanges().forEach((change) => {
+                        if (change.type === 'added') {
+                            const candidate = new RTCIceCandidate(change.doc.data());
+                            peerConnection.addIceCandidate(candidate);
+                        }
+                    });
+                });
+
+            } catch (err) {
+                log("Error Reconnect Client: " + err.message);
+            }
+        }
+
         // --- COMMON UTILS ---
+        window.disconnectSession = () => {
+            if (confirm("Yakin ingin memutuskan koneksi permanen?")) {
+                clearSession();
+                if (peerConnection) {
+                    peerConnection.close();
+                }
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                }
+                window.location.reload();
+            }
+        };
+
         window.toggleMic = () => {
             if (!localStream) return;
             
