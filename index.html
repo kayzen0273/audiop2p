@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Bridge - WebRTC</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* Animasi Gelombang */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        .pulse-animation::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; right: 0; bottom: 0;
+            border-radius: 50%;
+            border: 2px solid currentColor;
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200 font-sans min-h-screen flex flex-col selection:bg-cyan-500 selection:text-white">
+
+    <!-- Header -->
+    <header class="p-4 border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-10 flex justify-between items-center">
+        <div class="flex items-center gap-2">
+            <i class="fa-solid fa-tower-broadcast text-cyan-400"></i>
+            <h1 class="font-bold text-lg tracking-tight">AudioBridge</h1>
+        </div>
+        <div id="connectionStatus" class="text-xs font-mono bg-slate-800 px-2 py-1 rounded text-slate-400">
+            OFFLINE
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-col items-center justify-center p-6 w-full max-w-md mx-auto relative">
+        
+        <!-- Notifikasi Error/Info -->
+        <div id="toast" class="hidden fixed top-20 left-1/2 transform -translate-x-1/2 bg-slate-800 border border-slate-700 text-white px-4 py-2 rounded-lg shadow-xl text-sm z-50 transition-opacity">
+            Pesan notifikasi
+        </div>
+
+        <!-- HALAMAN 1: LANDING / PILIH MODE -->
+        <div id="landingPage" class="w-full space-y-8 animate-in fade-in zoom-in duration-300">
+            <div class="text-center space-y-2">
+                <h2 class="text-2xl font-bold text-white">Pilih Perangkat</h2>
+                <p class="text-slate-400 text-sm">Tentukan peran perangkat ini</p>
+            </div>
+
+            <!-- Tombol Host (Laptop) -->
+            <button onclick="startHosting()" class="w-full group relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-left hover:scale-[1.02] transition-all shadow-lg shadow-blue-900/20">
+                <div class="flex items-center justify-between relative z-10">
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Mode Laptop (Host)</h3>
+                        <p class="text-blue-100 text-xs mt-1">Sumber suara utama. Mic otomatis ON.</p>
+                    </div>
+                    <i class="fa-solid fa-laptop text-2xl text-white/80"></i>
+                </div>
+            </button>
+
+            <div class="relative flex items-center py-2">
+                <div class="flex-grow border-t border-slate-800"></div>
+                <span class="flex-shrink-0 mx-4 text-slate-600 text-xs uppercase">Atau gabung</span>
+                <div class="flex-grow border-t border-slate-800"></div>
+            </div>
+
+            <!-- Form Join (HP) -->
+            <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">
+                <div class="flex items-center gap-2 text-slate-300 mb-1">
+                    <i class="fa-solid fa-mobile-screen"></i>
+                    <span class="font-medium text-sm">Mode HP (Remote)</span>
+                </div>
+                <input type="text" id="joinInput" placeholder="Masukkan ID Laptop" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-center text-lg font-mono tracking-widest text-white focus:outline-none focus:border-cyan-500 placeholder:text-sm placeholder:font-sans uppercase">
+                <button onclick="joinRoom()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 rounded-xl transition-colors flex justify-center items-center gap-2">
+                    <i class="fa-solid fa-link"></i> Hubungkan
+                </button>
+            </div>
+        </div>
+
+        <!-- HALAMAN 2: ACTIVE CALL -->
+        <div id="activePage" class="hidden w-full space-y-6 text-center animate-in slide-in-from-bottom duration-500">
+            
+            <!-- Kartu ID & Status -->
+            <div id="statusCard" class="relative p-8 rounded-3xl bg-slate-900 border border-slate-800 overflow-hidden transition-colors duration-500">
+                <!-- Ripple Effect Container -->
+                <div id="rippleEffect" class="absolute inset-0 flex items-center justify-center pointer-events-none hidden">
+                    <div class="w-32 h-32 rounded-full pulse-animation text-emerald-500/20"></div>
+                </div>
+
+                <div class="relative z-10">
+                    <div class="mb-4">
+                        <span id="roleBadge" class="text-[10px] uppercase tracking-wider font-bold bg-slate-800 px-2 py-1 rounded text-slate-400">
+                            Host
+                        </span>
+                    </div>
+                    <h2 id="displayRoomId" class="text-4xl font-mono font-bold text-white tracking-wider mb-2 select-all">---</h2>
+                    <p id="connectionText" class="text-xs text-emerald-400 font-medium tracking-wide animate-pulse">MENUNGGU KONEKSI...</p>
+                </div>
+            </div>
+
+            <!-- Tombol Copy ID (Khusus Host) -->
+            <button id="copyBtn" onclick="copyId()" class="hidden mx-auto bg-slate-800 hover:bg-slate-700 text-xs px-4 py-2 rounded-full flex items-center gap-2 text-slate-300 transition-colors">
+                <i class="fa-regular fa-copy"></i> Salin ID
+            </button>
+
+            <!-- Kontrol Audio (Beda untuk Laptop & HP) -->
+            <div class="grid gap-4 mt-6">
+                
+                <!-- Panel Laptop -->
+                <div id="laptopControls" class="hidden bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                    <button onclick="toggleMic()" id="laptopMicBtn" class="w-full py-4 rounded-xl font-bold flex flex-col items-center gap-2 bg-blue-600/20 text-blue-400 border border-blue-600/50">
+                        <i class="fa-solid fa-microphone"></i>
+                        <span>Mic ON (Monitoring)</span>
+                    </button>
+                    <p class="text-xs text-slate-500 mt-3">Suara sekitar laptop dikirim ke HP.</p>
+                </div>
+
+                <!-- Panel HP -->
+                <div id="mobileControls" class="hidden">
+                    <p class="text-slate-400 text-xs mb-3">Tekan tombol untuk bicara balik</p>
+                    <button onclick="toggleMic()" id="mobileMicBtn" class="w-full py-8 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-95 bg-slate-800 text-slate-400 border border-slate-700">
+                        <i class="fa-solid fa-microphone-slash"></i>
+                        <span>MIC MATI (Dengar)</span>
+                    </button>
+                </div>
+
+                <button onclick="window.location.reload()" class="mt-4 text-xs text-red-400 hover:text-red-300 flex items-center justify-center gap-2 py-2">
+                    <i class="fa-solid fa-power-off"></i> Putus Koneksi
+                </button>
+            </div>
+
+            <!-- Console Log Mini -->
+            <div id="logs" class="text-[10px] font-mono text-slate-600 text-left h-20 overflow-y-auto bg-black/20 p-2 rounded border border-slate-800/50">
+                <div>> System ready...</div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Audio Element (Hidden) -->
+    <audio id="remoteAudio" autoplay playsinline class="hidden"></audio>
+
+    <!-- Firebase & Logic Scripts -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
+        import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
+        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, updateDoc, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
+
+        // --- KONFIGURASI FIREBASE ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDbhegMTo3-AG4tUPQJkbwlXMbUZmdjVTk",
+            authDomain: "p2paudio-fdbde.firebaseapp.com",
+            projectId: "p2paudio-fdbde",
+            storageBucket: "p2paudio-fdbde.firebasestorage.app",
+            messagingSenderId: "734885014321",
+            appId: "1:734885014321:web:e6fef64fb7d58802cc9e10",
+            measurementId: "G-GTQW9KLKE4"
+        };
+
+        // Inisialisasi Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // --- GLOBAL VARIABLES ---
+        let user = null;
+        let peerConnection = null;
+        let localStream = null;
+        let mode = null; // 'sender' = Laptop, 'receiver' = HP
+        let roomId = null;
+        let isMuted = false;
+
+        // HTML References
+        const landingPage = document.getElementById('landingPage');
+        const activePage = document.getElementById('activePage');
+        const statusCard = document.getElementById('statusCard');
+        const connectionText = document.getElementById('connectionText');
+        const rippleEffect = document.getElementById('rippleEffect');
+        const laptopMicBtn = document.getElementById('laptopMicBtn');
+        const mobileMicBtn = document.getElementById('mobileMicBtn');
+
+        // STUN Servers
+        const servers = {
+            iceServers: [
+                { urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }
+            ]
+        };
+
+        // --- FIREBASE AUTH ---
+        signInAnonymously(auth).catch((error) => {
+            log("Auth Error: " + error.message);
+        });
+
+        onAuthStateChanged(auth, (u) => {
+            if (u) {
+                user = u;
+                document.getElementById('connectionStatus').textContent = 'ONLINE';
+                document.getElementById('connectionStatus').classList.remove('text-slate-400');
+                document.getElementById('connectionStatus').classList.add('text-emerald-400');
+                log("Firebase connected: " + u.uid.substring(0, 6));
+            } else {
+                document.getElementById('connectionStatus').textContent = 'OFFLINE';
+            }
+        });
+
+        // --- HELPER FUNCTIONS ---
+        function log(message) {
+            const logDiv = document.getElementById('logs');
+            const entry = document.createElement('div');
+            entry.textContent = `> ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function generateRoomId() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+
+        window.copyId = () => {
+            navigator.clipboard.writeText(roomId);
+            showToast("ID disalin!");
+        };
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 2000);
+        }
+
+        // --- WEBRTC SETUP ---
+        async function setupLocalAudio(muted = false) {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: { 
+                        echoCancellation: true, 
+                        noiseSuppression: true 
+                    }, 
+                    video: false 
+                });
+                
+                localStream.getAudioTracks()[0].enabled = !muted;
+                isMuted = muted;
+                updateMicUI();
+                
+                log("Mic " + (muted ? "muted" : "active"));
+            } catch (err) {
+                alert("Gagal akses mikrofon: " + err.message);
+            }
+        }
+
+        function createPeerConnection() {
+            peerConnection = new RTCPeerConnection(servers);
+
+            // Add local audio
+            if (localStream) {
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+            }
+
+            // Receive remote audio
+            peerConnection.ontrack = (event) => {
+                const remoteAudio = document.getElementById('remoteAudio');
+                remoteAudio.srcObject = event.streams[0];
+                log("Audio remote diterima.");
+            };
+
+            // Connection state monitoring
+            peerConnection.onconnectionstatechange = () => {
+                const state = peerConnection.connectionState;
+                log(`Connection: ${state}`);
+                
+                if (state === 'connected') {
+                    connectionText.textContent = "✓ TERHUBUNG";
+                    connectionText.classList.remove('animate-pulse', 'text-emerald-400');
+                    connectionText.classList.add('text-emerald-300');
+                    
+                    statusCard.classList.add('border-emerald-500/30');
+                    rippleEffect.classList.remove('hidden');
+                    
+                    setTimeout(() => {
+                        rippleEffect.classList.add('hidden');
+                        statusCard.classList.remove('border-emerald-500/30');
+                    }, 3000);
+                } else if (state === 'disconnected' || state === 'failed') {
+                    connectionText.textContent = "KONEKSI TERPUTUS";
+                    connectionText.classList.add('text-red-500');
+                }
+            };
+        }
+
+        // --- HOST LOGIC (LAPTOP) ---
+        window.startHosting = async () => {
+            if (!user) return;
+
+            mode = 'sender';
+            roomId = generateRoomId();
+
+            // UI Updates
+            landingPage.classList.add('hidden');
+            activePage.classList.remove('hidden');
+            document.getElementById('displayRoomId').textContent = roomId;
+            document.getElementById('roleBadge').textContent = "LAPTOP (HOST)";
+            document.getElementById('laptopControls').classList.remove('hidden');
+            document.getElementById('copyBtn').classList.remove('hidden');
+
+            try {
+                // Laptop mic ON by default
+                await setupLocalAudio(false);
+                createPeerConnection();
+
+                // WebRTC Offer
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        const col = collection(db, `calls/${roomId}/callerCandidates`);
+                        addDoc(col, event.candidate.toJSON());
+                    }
+                };
+
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+
+                // Save to Firestore
+                const callDoc = doc(db, `calls/${roomId}`);
+                await setDoc(callDoc, { 
+                    offer: { type: offer.type, sdp: offer.sdp },
+                    createdAt: serverTimestamp()
+                });
+
+                log(`Room ${roomId} dibuat. Menunggu HP...`);
+
+                // Listen for Answer
+                onSnapshot(callDoc, (snapshot) => {
+                    const data = snapshot.data();
+                    if (!peerConnection.currentRemoteDescription && data?.answer) {
+                        const answer = new RTCSessionDescription(data.answer);
+                        peerConnection.setRemoteDescription(answer);
+                        log("Jawaban diterima dari HP.");
+                    }
+                });
+
+                // Listen for Callee Candidates
+                const calleeCandidates = collection(db, `calls/${roomId}/calleeCandidates`);
+                onSnapshot(calleeCandidates, (snapshot) => {
+                    snapshot.docChanges().forEach((change) => {
+                        if (change.type === 'added') {
+                            const candidate = new RTCIceCandidate(change.doc.data());
+                            peerConnection.addIceCandidate(candidate);
+                        }
+                    });
+                });
+
+            } catch (err) {
+                log("Error Host: " + err.message);
+            }
+        };
+
+        // --- CLIENT LOGIC (HP) ---
+        window.joinRoom = async () => {
+            const inputId = document.getElementById('joinInput').value.toUpperCase();
+            if (!user || !inputId) return;
+
+            mode = 'receiver';
+            roomId = inputId;
+
+            // UI Updates
+            landingPage.classList.add('hidden');
+            activePage.classList.remove('hidden');
+            document.getElementById('displayRoomId').textContent = roomId;
+            document.getElementById('roleBadge').textContent = "HP (REMOTE)";
+            document.getElementById('mobileControls').classList.remove('hidden');
+
+            try {
+                const callDoc = doc(db, `calls/${roomId}`);
+                const snapshot = await getDoc(callDoc);
+
+                if (!snapshot.exists()) {
+                    alert("ID Room tidak ditemukan!");
+                    window.location.reload();
+                    return;
+                }
+
+                // HP mic OFF by default
+                await setupLocalAudio(true);
+                createPeerConnection();
+
+                // WebRTC Answer
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        const col = collection(db, `calls/${roomId}/calleeCandidates`);
+                        addDoc(col, event.candidate.toJSON());
+                    }
+                };
+
+                const offerData = snapshot.data().offer;
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(offerData));
+
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+
+                await updateDoc(callDoc, {
+                    answer: { type: answer.type, sdp: answer.sdp }
+                });
+
+                // Listen for Caller Candidates
+                const callerCandidates = collection(db, `calls/${roomId}/callerCandidates`);
+                onSnapshot(callerCandidates, (snapshot) => {
+                    snapshot.docChanges().forEach((change) => {
+                        if (change.type === 'added') {
+                            const candidate = new RTCIceCandidate(change.doc.data());
+                            peerConnection.addIceCandidate(candidate);
+                        }
+                    });
+                });
+
+            } catch (err) {
+                log("Error Join: " + err.message);
+            }
+        };
+
+        // --- COMMON UTILS ---
+        window.toggleMic = () => {
+            if (!localStream) return;
+            
+            const track = localStream.getAudioTracks()[0];
+            if (track) {
+                track.enabled = !track.enabled;
+                isMuted = !track.enabled;
+                updateMicUI();
+            }
+        };
+
+        function updateMicUI() {
+            // Update UI Laptop
+            if (mode === 'sender') {
+                if (isMuted) {
+                    laptopMicBtn.className = "w-full py-4 rounded-xl font-bold flex flex-col items-center gap-2 bg-red-900/20 text-red-500 border border-red-900/50";
+                    laptopMicBtn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i><span>Mic Muted</span>';
+                } else {
+                    laptopMicBtn.className = "w-full py-4 rounded-xl font-bold flex flex-col items-center gap-2 bg-blue-600/20 text-blue-400 border border-blue-600/50";
+                    laptopMicBtn.innerHTML = '<i class="fa-solid fa-microphone"></i><span>Mic ON (Monitoring)</span>';
+                }
+            } 
+            // Update UI HP
+            else if (mode === 'receiver') {
+                if (isMuted) {
+                    mobileMicBtn.className = "w-full py-8 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-95 bg-slate-800 text-slate-400 border border-slate-700";
+                    mobileMicBtn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i><span>MIC MATI (Dengar)</span>';
+                } else {
+                    mobileMicBtn.className = "w-full py-8 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-95 bg-emerald-600 text-white shadow-lg shadow-emerald-500/20";
+                    mobileMicBtn.innerHTML = '<i class="fa-solid fa-microphone animate-bounce"></i><span>SEDANG BICARA...</span>';
+                }
+            }
+        }
+    </script>
+</body>
+</html>
