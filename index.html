@@ -114,13 +114,13 @@
             <!-- Kontrol Audio (Beda untuk Laptop & HP) -->
             <div class="grid gap-4 mt-6">
                 
-                <!-- Panel Laptop -->
+                <!-- Panel Laptop - Status Only (No Button) -->
                 <div id="laptopControls" class="hidden bg-slate-900/50 p-4 rounded-xl border border-slate-800">
-                    <button onclick="toggleMic()" id="laptopMicBtn" class="w-full py-4 rounded-xl font-bold flex flex-col items-center gap-2 bg-blue-600/20 text-blue-400 border border-blue-600/50">
-                        <i class="fa-solid fa-microphone"></i>
-                        <span>Mic ON (Monitoring)</span>
-                    </button>
-                    <p class="text-xs text-slate-500 mt-3">Suara sekitar laptop dikirim ke HP.</p>
+                    <div class="w-full py-4 rounded-xl flex flex-col items-center gap-2 bg-blue-600/20 text-blue-400 border border-blue-600/50">
+                        <i class="fa-solid fa-microphone animate-pulse"></i>
+                        <span class="font-bold">Mic Aktif (Monitoring)</span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-3 text-center">Mic laptop selalu ON. Suara sekitar dikirim ke HP.</p>
                 </div>
 
                 <!-- Panel HP -->
@@ -184,7 +184,6 @@
         const statusCard = document.getElementById('statusCard');
         const connectionText = document.getElementById('connectionText');
         const rippleEffect = document.getElementById('rippleEffect');
-        const laptopMicBtn = document.getElementById('laptopMicBtn');
         const mobileMicBtn = document.getElementById('mobileMicBtn');
 
         // STUN Servers
@@ -249,7 +248,11 @@
                 
                 localStream.getAudioTracks()[0].enabled = !muted;
                 isMuted = muted;
-                updateMicUI();
+                
+                // Update UI hanya untuk HP (receiver)
+                if (mode === 'receiver') {
+                    updateMicUI();
+                }
                 
                 log("Mic " + (muted ? "muted" : "active"));
             } catch (err) {
@@ -429,7 +432,8 @@
 
         // --- COMMON UTILS ---
         window.toggleMic = () => {
-            if (!localStream) return;
+            // Toggle mic hanya untuk HP (receiver), laptop selalu ON
+            if (mode !== 'receiver' || !localStream) return;
             
             const track = localStream.getAudioTracks()[0];
             if (track) {
@@ -440,18 +444,8 @@
         };
 
         function updateMicUI() {
-            // Update UI Laptop
-            if (mode === 'sender') {
-                if (isMuted) {
-                    laptopMicBtn.className = "w-full py-4 rounded-xl font-bold flex flex-col items-center gap-2 bg-red-900/20 text-red-500 border border-red-900/50";
-                    laptopMicBtn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i><span>Mic Muted</span>';
-                } else {
-                    laptopMicBtn.className = "w-full py-4 rounded-xl font-bold flex flex-col items-center gap-2 bg-blue-600/20 text-blue-400 border border-blue-600/50";
-                    laptopMicBtn.innerHTML = '<i class="fa-solid fa-microphone"></i><span>Mic ON (Monitoring)</span>';
-                }
-            } 
-            // Update UI HP
-            else if (mode === 'receiver') {
+            // Update UI hanya untuk HP (receiver)
+            if (mode === 'receiver') {
                 if (isMuted) {
                     mobileMicBtn.className = "w-full py-8 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-95 bg-slate-800 text-slate-400 border border-slate-700";
                     mobileMicBtn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i><span>MIC MATI (Dengar)</span>';
