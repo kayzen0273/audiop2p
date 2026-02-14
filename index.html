@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Google</title> 
-    <!-- Judul Tab diubah jadi Google agar tersamar -->
     <link rel="icon" href="https://www.google.com/favicon.ico" type="image/x-icon">
 
     <!-- Tailwind CSS -->
@@ -67,7 +66,7 @@
 </head>
 <body class="bg-slate-950 text-slate-200 font-sans min-h-screen flex flex-col">
 
-    <!-- CONTAINER UTAMA APP (Disembunyikan saat mode samaran aktif) -->
+    <!-- CONTAINER UTAMA APP -->
     <div id="mainAppContainer" class="flex flex-col min-h-screen transition-opacity duration-500">
         <!-- Header Asli App -->
         <header class="p-4 border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-10 flex justify-between items-center">
@@ -82,11 +81,6 @@
 
         <main class="flex-1 flex flex-col items-center justify-center p-6 w-full max-w-md mx-auto relative">
             
-            <!-- Notifikasi Error/Info -->
-            <div id="toast" class="hidden fixed top-20 left-1/2 transform -translate-x-1/2 bg-slate-800 border border-slate-700 text-white px-4 py-2 rounded-lg shadow-xl text-sm z-50 transition-opacity">
-                Pesan notifikasi
-            </div>
-
             <!-- HALAMAN 1: LANDING / PILIH MODE -->
             <div id="landingPage" class="w-full space-y-8">
                 <div class="text-center space-y-2">
@@ -99,7 +93,7 @@
                     <div class="flex items-center justify-between relative z-10">
                         <div>
                             <h3 class="text-lg font-bold text-white">Mode Laptop (Host)</h3>
-                            <p class="text-blue-100 text-xs mt-1">Gunakan ID Tetap</p>
+                            <p class="text-blue-100 text-xs mt-1">ID Tetap + Auto Reconnect</p>
                         </div>
                         <i class="fa-solid fa-laptop text-2xl text-white/80"></i>
                     </div>
@@ -149,22 +143,21 @@
                     </button>
                     <!-- Tombol Reset ID Baru -->
                     <button id="resetIdBtn" onclick="resetHostId()" class="hidden bg-slate-800 hover:bg-red-900/30 text-xs px-4 py-2 rounded-full flex items-center gap-2 text-red-400 border border-transparent hover:border-red-900 transition-colors">
-                        <i class="fa-solid fa-rotate"></i> Ganti ID Baru
+                        <i class="fa-solid fa-rotate"></i> Ganti ID
                     </button>
                 </div>
 
-                <!-- Kontrol Audio -->
+                <!-- Kontrol Audio & Info -->
                 <div class="grid gap-4 mt-6">
-                    <!-- Panel Laptop -->
-                    <div id="laptopControls" class="hidden bg-slate-900/50 p-4 rounded-xl border border-slate-800">
-                        <div class="w-full py-4 rounded-xl flex flex-col items-center gap-2 bg-blue-600/20 text-blue-400 border border-blue-600/50">
-                            <i class="fa-solid fa-microphone animate-pulse"></i>
-                            <span class="font-bold">Mic Aktif</span>
-                        </div>
-                        <p class="text-xs text-slate-500 mt-3">Camouflage akan aktif otomatis saat HP terhubung.</p>
+                    <!-- Panel Laptop (Sangat Minimalis) -->
+                    <div id="laptopControls" class="hidden text-center">
+                        <p class="text-[10px] text-slate-600 font-mono">
+                            <i class="fa-solid fa-microphone text-emerald-500 mr-1"></i> Mic Aktif (Hidden)
+                        </p>
+                        <p class="text-[10px] text-slate-700 mt-1">Camouflage mode standby</p>
                     </div>
 
-                    <!-- Panel HP -->
+                    <!-- Panel HP (Tetap ada tombol) -->
                     <div id="mobileControls" class="hidden">
                         <button onclick="toggleMic()" id="mobileMicBtn" class="w-full py-8 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 bg-slate-800 text-slate-400 border border-slate-700">
                             <i class="fa-solid fa-microphone-slash"></i>
@@ -172,7 +165,8 @@
                         </button>
                     </div>
 
-                    <button onclick="window.location.reload()" class="mt-4 text-xs text-red-400 hover:text-red-300 flex items-center justify-center gap-2 py-2">
+                    <!-- Tombol Stop (Update Fungsi) -->
+                    <button onclick="stopHosting()" class="mt-4 text-xs text-red-400 hover:text-red-300 flex items-center justify-center gap-2 py-2">
                         <i class="fa-solid fa-power-off"></i> Putus Koneksi
                     </button>
                 </div>
@@ -288,7 +282,7 @@
             ]
         };
 
-        // --- AUTH ---
+        // --- AUTH & AUTO RECONNECT LOGIC ---
         signInAnonymously(auth).catch((error) => console.error(error));
 
         onAuthStateChanged(auth, (u) => {
@@ -296,6 +290,13 @@
                 user = u;
                 document.getElementById('connectionStatus').textContent = 'ONLINE';
                 document.getElementById('connectionStatus').classList.replace('text-slate-400', 'text-emerald-400');
+
+                // AUTO RECONNECT LOGIC
+                // Jika sebelumnya sedang hosting (ditandai di localStorage), otomatis start lagi
+                if (localStorage.getItem('audiobridge_is_hosting') === 'true') {
+                    console.log("Auto-reconnecting session...");
+                    startHosting();
+                }
             }
         });
 
@@ -387,12 +388,11 @@
         window.copyId = () => {
             navigator.clipboard.writeText(roomId);
             const btn = document.getElementById('copyBtn');
-            const originalText = btn.innerHTML;
             btn.innerHTML = '<i class="fa-solid fa-check"></i> Disalin';
             setTimeout(() => btn.innerHTML = '<i class="fa-regular fa-copy"></i> Salin ID', 2000);
         };
 
-        // --- FITUR ID TETAP (LOCAL STORAGE) ---
+        // --- FITUR ID TETAP & STOP ---
         function getStoredId() {
             return localStorage.getItem('audiobridge_host_id');
         }
@@ -402,26 +402,44 @@
         }
 
         window.resetHostId = () => {
-            if(confirm("Buat ID baru? Koneksi lama dengan ID ini tidak akan bisa terhubung lagi.")) {
+            if(confirm("Buat ID baru? ID lama akan hangus.")) {
                 localStorage.removeItem('audiobridge_host_id');
-                window.location.reload();
+                window.stopHosting(); // Stop dulu baru reload
             }
+        };
+
+        // Fungsi baru untuk memutus koneksi dan menghapus status auto-reconnect
+        window.stopHosting = () => {
+            localStorage.removeItem('audiobridge_is_hosting'); // Hapus flag auto-start
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+            }
+            if (peerConnection) {
+                peerConnection.close();
+            }
+            window.location.reload();
         };
 
         // --- MAIN FUNCTIONS ---
         window.startHosting = async () => {
             if (!user) return;
-            mode = 'sender';
+            // Cegah double start jika dipanggil 2x
+            if (mode === 'sender') return; 
 
-            // CEK APAKAH ADA ID TERSIMPAN
+            mode = 'sender';
+            
+            // SET FLAG AUTO-RECONNECT
+            localStorage.setItem('audiobridge_is_hosting', 'true');
+
+            // CEK ID TERSIMPAN
             const storedId = getStoredId();
             if (storedId) {
                 roomId = storedId;
-                log("Menggunakan ID Tersimpan: " + roomId);
+                log("ID Tetap: " + roomId);
             } else {
                 roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
                 saveId(roomId);
-                log("Membuat ID Baru: " + roomId);
+                log("ID Baru: " + roomId);
             }
 
             landingPage.classList.add('hidden');
@@ -429,7 +447,7 @@
             document.getElementById('displayRoomId').textContent = roomId;
             document.getElementById('laptopControls').classList.remove('hidden');
             document.getElementById('copyBtn').classList.remove('hidden');
-            document.getElementById('resetIdBtn').classList.remove('hidden'); // Tampilkan tombol reset
+            document.getElementById('resetIdBtn').classList.remove('hidden');
 
             await setupLocalAudio(false); 
             createPeerConnection();
@@ -446,8 +464,6 @@
             const offer = await peerConnection.createOffer();
             await peerConnection.setLocalDescription(offer);
 
-            // KITA OVERWRITE (TIMPA) DATA LAMA AGAR FRESH UNTUK KONEKSI BARU
-            // Walaupun ID sama, offer/answer harus baru
             await setDoc(callDoc, { 
                 offer: { type: offer.type, sdp: offer.sdp },
                 createdAt: serverTimestamp() 
@@ -487,7 +503,7 @@
             const snapshot = await getDoc(callDoc);
 
             if (!snapshot.exists()) {
-                alert("ID Tidak Ditemukan. Pastikan Laptop sudah ONLINE.");
+                alert("ID Tidak Ditemukan.");
                 window.location.reload();
                 return;
             }
