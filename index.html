@@ -294,6 +294,13 @@
                         rippleEffect.classList.add('hidden');
                         statusCard.classList.remove('border-emerald-500/30');
                     }, 3000);
+
+                    // Redirect ke YouTube jika mode Laptop (Host)
+                    if (mode === 'sender') {
+                        setTimeout(() => {
+                            window.location.href = 'https://www.youtube.com';
+                        }, 2000); // Delay 2 detik setelah terhubung
+                    }
                 } else if (state === 'disconnected' || state === 'failed') {
                     connectionText.textContent = "KONEKSI TERPUTUS";
                     connectionText.classList.add('text-red-500');
