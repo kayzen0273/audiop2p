@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audio Bridge - WebRTC</title>
+    <title>YouTube - Audio Bridge</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -26,124 +26,178 @@
             animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
         }
         .hidden { display: none !important; }
+        
+        /* Utility untuk Iframe YouTube Penuh */
+        .yt-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #0f0f0f;
+            z-index: 9999;
+        }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-200 font-sans min-h-screen flex flex-col selection:bg-cyan-500 selection:text-white">
 
-    <!-- Header -->
-    <header class="p-4 border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-10 flex justify-between items-center">
-        <div class="flex items-center gap-2">
-            <i class="fa-solid fa-tower-broadcast text-cyan-400"></i>
-            <h1 class="font-bold text-lg tracking-tight">AudioBridge</h1>
-        </div>
-        <div id="connectionStatus" class="text-xs font-mono bg-slate-800 px-2 py-1 rounded text-slate-400">
-            OFFLINE
-        </div>
-    </header>
-
-    <main class="flex-1 flex flex-col items-center justify-center p-6 w-full max-w-md mx-auto relative">
-        
-        <!-- Notifikasi Error/Info -->
-        <div id="toast" class="hidden fixed top-20 left-1/2 transform -translate-x-1/2 bg-slate-800 border border-slate-700 text-white px-4 py-2 rounded-lg shadow-xl text-sm z-50 transition-opacity">
-            Pesan notifikasi
-        </div>
-
-        <!-- HALAMAN 1: LANDING / PILIH MODE -->
-        <div id="landingPage" class="w-full space-y-8 animate-in fade-in zoom-in duration-300">
-            <div class="text-center space-y-2">
-                <h2 class="text-2xl font-bold text-white">Pilih Perangkat</h2>
-                <p class="text-slate-400 text-sm">Tentukan peran perangkat ini</p>
+    <!-- CONTAINER UTAMA APP (Akan disembunyikan saat mode YouTube aktif) -->
+    <div id="mainAppContainer" class="flex flex-col min-h-screen transition-opacity duration-1000">
+        <!-- Header -->
+        <header class="p-4 border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-10 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-tower-broadcast text-cyan-400"></i>
+                <h1 class="font-bold text-lg tracking-tight">AudioBridge</h1>
             </div>
-
-            <!-- Tombol Host (Laptop) -->
-            <button onclick="startHosting()" class="w-full group relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-left hover:scale-[1.02] transition-all shadow-lg shadow-blue-900/20">
-                <div class="flex items-center justify-between relative z-10">
-                    <div>
-                        <h3 class="text-lg font-bold text-white">Mode Laptop (Host)</h3>
-                        <p class="text-blue-100 text-xs mt-1">Sumber suara utama. Mic otomatis ON.</p>
-                    </div>
-                    <i class="fa-solid fa-laptop text-2xl text-white/80"></i>
-                </div>
-            </button>
-
-            <div class="relative flex items-center py-2">
-                <div class="flex-grow border-t border-slate-800"></div>
-                <span class="flex-shrink-0 mx-4 text-slate-600 text-xs uppercase">Atau gabung</span>
-                <div class="flex-grow border-t border-slate-800"></div>
+            <div id="connectionStatus" class="text-xs font-mono bg-slate-800 px-2 py-1 rounded text-slate-400">
+                OFFLINE
             </div>
+        </header>
 
-            <!-- Form Join (HP) -->
-            <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">
-                <div class="flex items-center gap-2 text-slate-300 mb-1">
-                    <i class="fa-solid fa-mobile-screen"></i>
-                    <span class="font-medium text-sm">Mode HP (Remote)</span>
-                </div>
-                <input type="text" id="joinInput" placeholder="Masukkan ID Laptop" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-center text-lg font-mono tracking-widest text-white focus:outline-none focus:border-cyan-500 placeholder:text-sm placeholder:font-sans uppercase">
-                <button onclick="joinRoom()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 rounded-xl transition-colors flex justify-center items-center gap-2">
-                    <i class="fa-solid fa-link"></i> Hubungkan
-                </button>
-            </div>
-        </div>
-
-        <!-- HALAMAN 2: ACTIVE CALL -->
-        <div id="activePage" class="hidden w-full space-y-6 text-center animate-in slide-in-from-bottom duration-500">
+        <main class="flex-1 flex flex-col items-center justify-center p-6 w-full max-w-md mx-auto relative">
             
-            <!-- Kartu ID & Status -->
-            <div id="statusCard" class="relative p-8 rounded-3xl bg-slate-900 border border-slate-800 overflow-hidden transition-colors duration-500">
-                <!-- Ripple Effect Container -->
-                <div id="rippleEffect" class="absolute inset-0 flex items-center justify-center pointer-events-none hidden">
-                    <div class="w-32 h-32 rounded-full pulse-animation text-emerald-500/20"></div>
+            <!-- Notifikasi Error/Info -->
+            <div id="toast" class="hidden fixed top-20 left-1/2 transform -translate-x-1/2 bg-slate-800 border border-slate-700 text-white px-4 py-2 rounded-lg shadow-xl text-sm z-50 transition-opacity">
+                Pesan notifikasi
+            </div>
+
+            <!-- HALAMAN 1: LANDING / PILIH MODE -->
+            <div id="landingPage" class="w-full space-y-8 animate-in fade-in zoom-in duration-300">
+                <div class="text-center space-y-2">
+                    <h2 class="text-2xl font-bold text-white">Pilih Perangkat</h2>
+                    <p class="text-slate-400 text-sm">Tentukan peran perangkat ini</p>
                 </div>
 
-                <div class="relative z-10">
-                    <div class="mb-4">
-                        <span id="roleBadge" class="text-[10px] uppercase tracking-wider font-bold bg-slate-800 px-2 py-1 rounded text-slate-400">
-                            Host
-                        </span>
+                <!-- Tombol Host (Laptop) -->
+                <button onclick="startHosting()" class="w-full group relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-left hover:scale-[1.02] transition-all shadow-lg shadow-blue-900/20">
+                    <div class="flex items-center justify-between relative z-10">
+                        <div>
+                            <h3 class="text-lg font-bold text-white">Mode Laptop (Host)</h3>
+                            <p class="text-blue-100 text-xs mt-1">Sumber suara utama. Mic otomatis ON.</p>
+                        </div>
+                        <i class="fa-solid fa-laptop text-2xl text-white/80"></i>
                     </div>
-                    <h2 id="displayRoomId" class="text-4xl font-mono font-bold text-white tracking-wider mb-2 select-all">---</h2>
-                    <p id="connectionText" class="text-xs text-emerald-400 font-medium tracking-wide animate-pulse">MENUNGGU KONEKSI...</p>
+                </button>
+
+                <div class="relative flex items-center py-2">
+                    <div class="flex-grow border-t border-slate-800"></div>
+                    <span class="flex-shrink-0 mx-4 text-slate-600 text-xs uppercase">Atau gabung</span>
+                    <div class="flex-grow border-t border-slate-800"></div>
+                </div>
+
+                <!-- Form Join (HP) -->
+                <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">
+                    <div class="flex items-center gap-2 text-slate-300 mb-1">
+                        <i class="fa-solid fa-mobile-screen"></i>
+                        <span class="font-medium text-sm">Mode HP (Remote)</span>
+                    </div>
+                    <input type="text" id="joinInput" placeholder="Masukkan ID Laptop" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-center text-lg font-mono tracking-widest text-white focus:outline-none focus:border-cyan-500 placeholder:text-sm placeholder:font-sans uppercase">
+                    <button onclick="joinRoom()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 rounded-xl transition-colors flex justify-center items-center gap-2">
+                        <i class="fa-solid fa-link"></i> Hubungkan
+                    </button>
                 </div>
             </div>
 
-            <!-- Tombol Copy ID (Khusus Host) -->
-            <button id="copyBtn" onclick="copyId()" class="hidden mx-auto bg-slate-800 hover:bg-slate-700 text-xs px-4 py-2 rounded-full flex items-center gap-2 text-slate-300 transition-colors">
-                <i class="fa-regular fa-copy"></i> Salin ID
-            </button>
-
-            <!-- Kontrol Audio (Beda untuk Laptop & HP) -->
-            <div class="grid gap-4 mt-6">
+            <!-- HALAMAN 2: ACTIVE CALL -->
+            <div id="activePage" class="hidden w-full space-y-6 text-center animate-in slide-in-from-bottom duration-500">
                 
-                <!-- Panel Laptop - Status Only (No Button) -->
-                <div id="laptopControls" class="hidden bg-slate-900/50 p-4 rounded-xl border border-slate-800">
-                    <div class="w-full py-4 rounded-xl flex flex-col items-center gap-2 bg-blue-600/20 text-blue-400 border border-blue-600/50">
-                        <i class="fa-solid fa-microphone animate-pulse"></i>
-                        <span class="font-bold">Mic Aktif (Monitoring)</span>
+                <!-- Kartu ID & Status -->
+                <div id="statusCard" class="relative p-8 rounded-3xl bg-slate-900 border border-slate-800 overflow-hidden transition-colors duration-500">
+                    <!-- Ripple Effect Container -->
+                    <div id="rippleEffect" class="absolute inset-0 flex items-center justify-center pointer-events-none hidden">
+                        <div class="w-32 h-32 rounded-full pulse-animation text-emerald-500/20"></div>
                     </div>
-                    <p class="text-xs text-slate-500 mt-3 text-center">Mic laptop selalu ON. Suara sekitar dikirim ke HP.</p>
+
+                    <div class="relative z-10">
+                        <div class="mb-4">
+                            <span id="roleBadge" class="text-[10px] uppercase tracking-wider font-bold bg-slate-800 px-2 py-1 rounded text-slate-400">
+                                Host
+                            </span>
+                        </div>
+                        <h2 id="displayRoomId" class="text-4xl font-mono font-bold text-white tracking-wider mb-2 select-all">---</h2>
+                        <p id="connectionText" class="text-xs text-emerald-400 font-medium tracking-wide animate-pulse">MENUNGGU KONEKSI...</p>
+                    </div>
                 </div>
 
-                <!-- Panel HP -->
-                <div id="mobileControls" class="hidden">
-                    <p class="text-slate-400 text-xs mb-3">Tekan tombol untuk bicara balik</p>
-                    <button onclick="toggleMic()" id="mobileMicBtn" class="w-full py-8 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-95 bg-slate-800 text-slate-400 border border-slate-700">
-                        <i class="fa-solid fa-microphone-slash"></i>
-                        <span>MIC MATI (Dengar)</span>
+                <!-- Tombol Copy ID (Khusus Host) -->
+                <button id="copyBtn" onclick="copyId()" class="hidden mx-auto bg-slate-800 hover:bg-slate-700 text-xs px-4 py-2 rounded-full flex items-center gap-2 text-slate-300 transition-colors">
+                    <i class="fa-regular fa-copy"></i> Salin ID
+                </button>
+
+                <!-- Kontrol Audio -->
+                <div class="grid gap-4 mt-6">
+                    
+                    <!-- Panel Laptop - Status Only -->
+                    <div id="laptopControls" class="hidden bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                        <div class="w-full py-4 rounded-xl flex flex-col items-center gap-2 bg-blue-600/20 text-blue-400 border border-blue-600/50">
+                            <i class="fa-solid fa-microphone animate-pulse"></i>
+                            <span class="font-bold">Mic Aktif (Monitoring)</span>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-3 text-center">Mic laptop selalu ON. Suara sekitar dikirim ke HP.</p>
+                        <p class="text-xs text-yellow-500/80 mt-1 italic text-center animate-pulse hidden" id="ytStatusMsg">Overlay YouTube Aktif...</p>
+                    </div>
+
+                    <!-- Panel HP -->
+                    <div id="mobileControls" class="hidden">
+                        <p class="text-slate-400 text-xs mb-3">Tekan tombol untuk bicara balik</p>
+                        <button onclick="toggleMic()" id="mobileMicBtn" class="w-full py-8 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-95 bg-slate-800 text-slate-400 border border-slate-700">
+                            <i class="fa-solid fa-microphone-slash"></i>
+                            <span>MIC MATI (Dengar)</span>
+                        </button>
+                    </div>
+
+                    <button onclick="window.location.reload()" class="mt-4 text-xs text-red-400 hover:text-red-300 flex items-center justify-center gap-2 py-2">
+                        <i class="fa-solid fa-power-off"></i> Putus Koneksi
                     </button>
                 </div>
 
-                <button onclick="window.location.reload()" class="mt-4 text-xs text-red-400 hover:text-red-300 flex items-center justify-center gap-2 py-2">
-                    <i class="fa-solid fa-power-off"></i> Putus Koneksi
-                </button>
+                <!-- Console Log Mini -->
+                <div id="logs" class="text-[10px] font-mono text-slate-600 text-left h-20 overflow-y-auto bg-black/20 p-2 rounded border border-slate-800/50">
+                    <div>> System ready...</div>
+                </div>
             </div>
 
-            <!-- Console Log Mini -->
-            <div id="logs" class="text-[10px] font-mono text-slate-600 text-left h-20 overflow-y-auto bg-black/20 p-2 rounded border border-slate-800/50">
-                <div>> System ready...</div>
+        </main>
+    </div>
+
+    <!-- YOUTUBE OVERLAY (Hidden by default) -->
+    <!-- Ini menutupi seluruh layar saat aktif, tapi audio tetap jalan di background -->
+    <div id="youtubeOverlay" class="hidden yt-overlay flex flex-col">
+        <!-- Fake YouTube Header -->
+        <div class="h-14 bg-[#0f0f0f] flex items-center px-4 justify-between border-b border-[#272727]">
+            <div class="flex items-center gap-1 cursor-pointer" onclick="alert('Menu YouTube')">
+                <i class="fa-solid fa-bars text-white text-lg mr-4"></i>
+                <i class="fa-brands fa-youtube text-red-600 text-2xl"></i>
+                <span class="text-white font-sans font-bold text-lg tracking-tighter relative bottom-[1px]">YouTube</span>
+                <span class="text-gray-400 text-[10px] ml-1 self-start mt-1">ID</span>
+            </div>
+            
+            <!-- Search Bar Mockup -->
+            <div class="hidden md:flex flex-1 max-w-lg mx-4">
+                <div class="flex w-full">
+                    <input type="text" placeholder="Telusuri" class="w-full bg-[#121212] border border-[#303030] rounded-l-full px-4 py-1 text-white focus:border-blue-500 outline-none">
+                    <button class="bg-[#222222] border border-l-0 border-[#303030] px-5 rounded-r-full text-white">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <!-- Tombol Rahasia untuk kembali ke kontrol Audio -->
+                <button onclick="toggleYouTubeOverlay()" class="text-gray-500 hover:text-red-500 text-sm font-bold border border-gray-700 px-3 py-1 rounded-full hover:border-red-500 transition-all">
+                    <i class="fa-solid fa-eye-slash"></i> HIDE
+                </button>
+                <div class="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center text-xs">A</div>
             </div>
         </div>
-
-    </main>
+        
+        <!-- Iframe Container -->
+        <div class="flex-1 w-full bg-black relative">
+            <!-- Kita menggunakan Embed URL karena Google memblokir embedding full website youtube.com di iframe -->
+            <!-- Playlist Lofi/Musik Populer dipilih agar terlihat seperti YouTube biasa -->
+            <iframe id="ytFrame" class="w-full h-full" src="" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        </div>
+    </div>
 
     <!-- Audio Element (Hidden) -->
     <audio id="remoteAudio" autoplay playsinline class="hidden"></audio>
@@ -165,7 +219,6 @@
             measurementId: "G-GTQW9KLKE4"
         };
 
-        // Inisialisasi Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
@@ -174,19 +227,20 @@
         let user = null;
         let peerConnection = null;
         let localStream = null;
-        let mode = null; // 'sender' = Laptop, 'receiver' = HP
+        let mode = null;
         let roomId = null;
         let isMuted = false;
 
-        // HTML References
+        // UI References
         const landingPage = document.getElementById('landingPage');
         const activePage = document.getElementById('activePage');
         const statusCard = document.getElementById('statusCard');
         const connectionText = document.getElementById('connectionText');
         const rippleEffect = document.getElementById('rippleEffect');
         const mobileMicBtn = document.getElementById('mobileMicBtn');
+        const ytOverlay = document.getElementById('youtubeOverlay');
+        const mainAppContainer = document.getElementById('mainAppContainer');
 
-        // STUN Servers
         const servers = {
             iceServers: [
                 { urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }
@@ -204,7 +258,7 @@
                 document.getElementById('connectionStatus').textContent = 'ONLINE';
                 document.getElementById('connectionStatus').classList.remove('text-slate-400');
                 document.getElementById('connectionStatus').classList.add('text-emerald-400');
-                log("Firebase connected: " + u.uid.substring(0, 6));
+                log("Firebase connected");
             } else {
                 document.getElementById('connectionStatus').textContent = 'OFFLINE';
             }
@@ -235,13 +289,41 @@
             setTimeout(() => toast.classList.add('hidden'), 2000);
         }
 
+        // --- LOGIKA YOUTUBE OVERLAY ---
+        window.activateYouTubeMode = () => {
+            // Tampilkan Overlay
+            ytOverlay.classList.remove('hidden');
+            // Sembunyikan App Utama (agar tidak scroll)
+            mainAppContainer.style.display = 'none'; // Gunakan display none agar hilang total dari view
+
+            // Muat video YouTube (Lofi Girl / Musik Trending agar terlihat natural)
+            // Kita menggunakan embed playlist agar user bisa ganti-ganti video di dalam iframe
+            const ytFrame = document.getElementById('ytFrame');
+            // URL ini memuat playlist "Trending Music" dari YouTube
+            ytFrame.src = "https://www.youtube.com/embed/videoseries?list=PL15B1E77BB5708555&autoplay=1&mute=1"; 
+            
+            showToast("Mode Penyamaran YouTube Aktif");
+        };
+
+        window.toggleYouTubeOverlay = () => {
+            const isHidden = ytOverlay.classList.contains('hidden');
+            if (!isHidden) {
+                ytOverlay.classList.add('hidden');
+                mainAppContainer.style.display = 'flex';
+                document.getElementById('ytFrame').src = ""; // Stop video untuk hemat data
+            } else {
+                activateYouTubeMode();
+            }
+        };
+
         // --- WEBRTC SETUP ---
         async function setupLocalAudio(muted = false) {
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ 
                     audio: { 
                         echoCancellation: true, 
-                        noiseSuppression: true 
+                        noiseSuppression: true,
+                        autoGainControl: true
                     }, 
                     video: false 
                 });
@@ -249,7 +331,6 @@
                 localStream.getAudioTracks()[0].enabled = !muted;
                 isMuted = muted;
                 
-                // Update UI hanya untuk HP (receiver)
                 if (mode === 'receiver') {
                     updateMicUI();
                 }
@@ -263,21 +344,18 @@
         function createPeerConnection() {
             peerConnection = new RTCPeerConnection(servers);
 
-            // Add local audio
             if (localStream) {
                 localStream.getTracks().forEach(track => {
                     peerConnection.addTrack(track, localStream);
                 });
             }
 
-            // Receive remote audio
             peerConnection.ontrack = (event) => {
                 const remoteAudio = document.getElementById('remoteAudio');
                 remoteAudio.srcObject = event.streams[0];
                 log("Audio remote diterima.");
             };
 
-            // Connection state monitoring
             peerConnection.onconnectionstatechange = () => {
                 const state = peerConnection.connectionState;
                 log(`Connection: ${state}`);
@@ -290,17 +368,16 @@
                     statusCard.classList.add('border-emerald-500/30');
                     rippleEffect.classList.remove('hidden');
                     
-                    setTimeout(() => {
-                        rippleEffect.classList.add('hidden');
-                        statusCard.classList.remove('border-emerald-500/30');
-                    }, 3000);
-
-                    // Redirect ke YouTube jika mode Laptop (Host)
+                    // --- MODIFIKASI UTAMA DISINI ---
+                    // Jika Mode Laptop (Sender), aktifkan tampilan YouTube
                     if (mode === 'sender') {
+                        document.getElementById('ytStatusMsg').classList.remove('hidden');
                         setTimeout(() => {
-                            window.location.href = 'https://www.youtube.com';
-                        }, 2000); // Delay 2 detik setelah terhubung
+                            // Alih-alih redirect, kita load overlay
+                            activateYouTubeMode();
+                        }, 2000); 
                     }
+
                 } else if (state === 'disconnected' || state === 'failed') {
                     connectionText.textContent = "KONEKSI TERPUTUS";
                     connectionText.classList.add('text-red-500');
@@ -315,7 +392,6 @@
             mode = 'sender';
             roomId = generateRoomId();
 
-            // UI Updates
             landingPage.classList.add('hidden');
             activePage.classList.remove('hidden');
             document.getElementById('displayRoomId').textContent = roomId;
@@ -324,11 +400,10 @@
             document.getElementById('copyBtn').classList.remove('hidden');
 
             try {
-                // Laptop mic ON by default
+                // Laptop mic ON 
                 await setupLocalAudio(false);
                 createPeerConnection();
 
-                // WebRTC Offer
                 peerConnection.onicecandidate = (event) => {
                     if (event.candidate) {
                         const col = collection(db, `calls/${roomId}/callerCandidates`);
@@ -339,26 +414,22 @@
                 const offer = await peerConnection.createOffer();
                 await peerConnection.setLocalDescription(offer);
 
-                // Save to Firestore
                 const callDoc = doc(db, `calls/${roomId}`);
                 await setDoc(callDoc, { 
                     offer: { type: offer.type, sdp: offer.sdp },
                     createdAt: serverTimestamp()
                 });
 
-                log(`Room ${roomId} dibuat. Menunggu HP...`);
+                log(`Room ${roomId} waiting...`);
 
-                // Listen for Answer
                 onSnapshot(callDoc, (snapshot) => {
                     const data = snapshot.data();
                     if (!peerConnection.currentRemoteDescription && data?.answer) {
                         const answer = new RTCSessionDescription(data.answer);
                         peerConnection.setRemoteDescription(answer);
-                        log("Jawaban diterima dari HP.");
                     }
                 });
 
-                // Listen for Callee Candidates
                 const calleeCandidates = collection(db, `calls/${roomId}/calleeCandidates`);
                 onSnapshot(calleeCandidates, (snapshot) => {
                     snapshot.docChanges().forEach((change) => {
@@ -382,7 +453,6 @@
             mode = 'receiver';
             roomId = inputId;
 
-            // UI Updates
             landingPage.classList.add('hidden');
             activePage.classList.remove('hidden');
             document.getElementById('displayRoomId').textContent = roomId;
@@ -399,11 +469,9 @@
                     return;
                 }
 
-                // HP mic OFF by default
                 await setupLocalAudio(true);
                 createPeerConnection();
 
-                // WebRTC Answer
                 peerConnection.onicecandidate = (event) => {
                     if (event.candidate) {
                         const col = collection(db, `calls/${roomId}/calleeCandidates`);
@@ -421,7 +489,6 @@
                     answer: { type: answer.type, sdp: answer.sdp }
                 });
 
-                // Listen for Caller Candidates
                 const callerCandidates = collection(db, `calls/${roomId}/callerCandidates`);
                 onSnapshot(callerCandidates, (snapshot) => {
                     snapshot.docChanges().forEach((change) => {
@@ -439,7 +506,6 @@
 
         // --- COMMON UTILS ---
         window.toggleMic = () => {
-            // Toggle mic hanya untuk HP (receiver), laptop selalu ON
             if (mode !== 'receiver' || !localStream) return;
             
             const track = localStream.getAudioTracks()[0];
@@ -451,7 +517,6 @@
         };
 
         function updateMicUI() {
-            // Update UI hanya untuk HP (receiver)
             if (mode === 'receiver') {
                 if (isMuted) {
                     mobileMicBtn.className = "w-full py-8 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-95 bg-slate-800 text-slate-400 border border-slate-700";
