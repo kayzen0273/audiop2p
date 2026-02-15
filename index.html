@@ -71,8 +71,8 @@
         <!-- Header Asli App -->
         <header class="p-4 border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-10 flex justify-between items-center">
             <div class="flex items-center gap-2">
-                <i class="fa-solid fa-tower-broadcast text-cyan-400"></i>
-                <h1 class="font-bold text-lg tracking-tight">AudioBridge <span class="text-xs font-normal text-yellow-400 border border-yellow-400 px-1 rounded">Global</span></h1>
+                <i class="fa-solid fa-shield-halved text-emerald-400"></i>
+                <h1 class="font-bold text-lg tracking-tight">AudioBridge <span class="text-xs font-normal text-white bg-red-600 px-1 rounded">ANTI-BLOCK</span></h1>
             </div>
             <div id="connectionStatus" class="text-xs font-mono bg-slate-800 px-2 py-1 rounded text-slate-400">
                 OFFLINE
@@ -85,15 +85,15 @@
             <div id="landingPage" class="w-full space-y-8">
                 <div class="text-center space-y-2">
                     <h2 class="text-2xl font-bold text-white">Setup Mode</h2>
-                    <p class="text-slate-400 text-sm">Versi Lintas Jaringan (WiFi/4G)</p>
+                    <p class="text-slate-400 text-sm">Versi Anti-Blokir (Menggunakan Relay Server)</p>
                 </div>
 
                 <!-- Tombol Host (Laptop) -->
-                <button onclick="startHosting()" class="w-full group relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-left hover:scale-[1.02] transition-all shadow-lg shadow-blue-900/20">
+                <button onclick="startHosting()" class="w-full group relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 p-6 text-left hover:scale-[1.02] transition-all shadow-lg shadow-emerald-900/20">
                     <div class="flex items-center justify-between relative z-10">
                         <div>
                             <h3 class="text-lg font-bold text-white">Mode Laptop (Host)</h3>
-                            <p class="text-blue-100 text-xs mt-1">ID Tetap + Auto Reconnect</p>
+                            <p class="text-emerald-100 text-xs mt-1">ID Tetap + Auto Reconnect</p>
                         </div>
                         <i class="fa-solid fa-laptop text-2xl text-white/80"></i>
                     </div>
@@ -133,7 +133,7 @@
                             <span id="roleBadge" class="text-[10px] uppercase tracking-wider font-bold bg-slate-800 px-2 py-1 rounded text-slate-400">Host</span>
                         </div>
                         <h2 id="displayRoomId" class="text-4xl font-mono font-bold text-white tracking-wider mb-2 select-all cursor-pointer" onclick="copyId()" title="Klik untuk salin">---</h2>
-                        <p id="connectionText" class="text-xs text-emerald-400 font-medium tracking-wide animate-pulse">MENUNGGU KONEKSI...</p>
+                        <p id="connectionText" class="text-xs text-yellow-400 font-medium tracking-wide animate-pulse">MENGHUBUNGKAN VIA RELAY...</p>
                     </div>
                 </div>
 
@@ -173,7 +173,7 @@
 
                 <!-- Console Log Mini -->
                 <div id="logs" class="text-[10px] font-mono text-slate-600 text-left h-20 overflow-y-auto bg-black/20 p-2 rounded border border-slate-800/50">
-                    <div>> Ready for Cross-Network...</div>
+                    <div>> System Ready.</div>
                 </div>
             </div>
 
@@ -276,19 +276,34 @@
         const rippleEffect = document.getElementById('rippleEffect');
         const mobileMicBtn = document.getElementById('mobileMicBtn');
 
-        // --- KONFIGURASI SERVER ICE (CROSS-NETWORK) ---
-        // Penambahan server STUN publik untuk menembus NAT/Firewall lebih baik
-        // Jika masih gagal (Symmetric NAT), Anda memerlukan server TURN berbayar/pribadi.
+        // --- KONFIGURASI SERVER TURN (ANTI BLOCK) ---
+        // Menggunakan OpenRelay Project (Gratis untuk komunitas)
+        // Ini lebih kuat dari STUN biasa karena bisa relay data (TURN)
         const servers = {
             iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun3.l.google.com:19302' },
-                { urls: 'stun:stun4.l.google.com:19302' },
-                { urls: 'stun:stun.services.mozilla.com' } // Backup STUN Mozilla
+                {
+                    urls: "stun:stun.relay.metered.ca:80",
+                },
+                {
+                    urls: "turn:stun.relay.metered.ca:80",
+                    username: "openrelayproject",
+                    credential: "openrelayproject",
+                },
+                {
+                    urls: "turn:stun.relay.metered.ca:443",
+                    username: "openrelayproject",
+                    credential: "openrelayproject",
+                },
+                {
+                    urls: "turn:stun.relay.metered.ca:443?transport=tcp",
+                    username: "openrelayproject",
+                    credential: "openrelayproject",
+                },
+                {
+                    urls: "stun:stun.l.google.com:19302" // Backup Google STUN
+                }
             ],
-            iceCandidatePoolSize: 10, // Menyiapkan kandidat koneksi lebih awal
+            iceCandidatePoolSize: 10,
         };
 
         // --- AUTH & AUTO RECONNECT LOGIC ---
@@ -299,14 +314,12 @@
                 user = u;
                 document.getElementById('connectionStatus').textContent = 'ONLINE';
                 document.getElementById('connectionStatus').classList.replace('text-slate-400', 'text-emerald-400');
-
                 checkAutoReconnect();
             }
         });
 
         function checkAutoReconnect() {
-            // Cek status sesi terakhir dari localStorage
-            const sessionMode = localStorage.getItem('audiobridge_session_mode'); // 'host' atau 'join'
+            const sessionMode = localStorage.getItem('audiobridge_session_mode'); 
             const savedJoinId = localStorage.getItem('audiobridge_join_id');
 
             if (sessionMode === 'host') {
@@ -314,7 +327,6 @@
                 startHosting();
             } else if (sessionMode === 'join' && savedJoinId) {
                 console.log("Auto-reconnecting Mobile to: " + savedJoinId);
-                // Isi input dan jalankan join
                 document.getElementById('joinInput').value = savedJoinId;
                 joinRoom();
             }
@@ -384,14 +396,19 @@
                 log(`ICE State: ${iceState}`);
 
                 if (iceState === 'disconnected' || iceState === 'failed') {
-                    connectionText.textContent = "JARINGAN TERBLOKIR / PUTUS";
-                    connectionText.classList.add('text-red-500');
-                    rippleEffect.classList.add('hidden');
+                    connectionText.textContent = "KONEKSI LEMAH - MENCOBA RELAY...";
+                    connectionText.classList.replace('text-emerald-300', 'text-yellow-400');
+                    connectionText.classList.add('animate-pulse');
                     
-                    // Coba restart ICE jika gagal
                     if(iceState === 'failed') {
+                        // Paksa restart ICE jika gagal total
                         peerConnection.restartIce();
                     }
+                } else if (iceState === 'connected') {
+                    connectionText.textContent = "✓ TERHUBUNG AMAN";
+                    connectionText.classList.replace('text-yellow-400', 'text-emerald-300');
+                    connectionText.classList.remove('animate-pulse');
+                    rippleEffect.classList.remove('hidden');
                 }
             }
 
@@ -400,22 +417,19 @@
                 log(`Connection: ${state}`);
                 
                 if (state === 'connected') {
-                    connectionText.textContent = "✓ TERHUBUNG GLOBAL";
-                    connectionText.classList.replace('text-emerald-400', 'text-emerald-300');
-                    connectionText.classList.remove('animate-pulse');
-                    rippleEffect.classList.remove('hidden');
-                    
+                    // Logic ada di oniceconnectionstatechange agar lebih akurat
                     if (mode === 'sender') {
                         setTimeout(() => {
                             activateGoogleMode();
-                        }, 1500);
+                        }, 2000); // Delay sedikit lebih lama agar stabil dulu
                     }
-
                 } else if (state === 'disconnected') {
-                    connectionText.textContent = "TERPUTUS - RECONNECTING...";
-                    connectionText.classList.add('text-red-500');
-                    rippleEffect.classList.add('hidden');
-                    setTimeout(() => window.location.reload(), 2000); 
+                     // Jangan langsung reload, beri waktu untuk reconnect
+                    setTimeout(() => {
+                        if (peerConnection.connectionState !== 'connected') {
+                             window.location.reload();
+                        }
+                    }, 3000); 
                 }
             };
         }
@@ -448,17 +462,14 @@
         window.resetHostId = () => {
             if(confirm("Buat ID baru? ID lama akan hangus.")) {
                 localStorage.removeItem('audiobridge_host_id');
-                window.stopConnection(); // Reset total
+                window.stopConnection(); 
             }
         };
 
         // --- UNIVERSAL STOP FUNCTION ---
         window.stopConnection = () => {
-            // Hapus session flags
             localStorage.removeItem('audiobridge_session_mode');
             localStorage.removeItem('audiobridge_join_id');
-            
-            // Matikan media
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
             }
@@ -474,11 +485,8 @@
             if (mode === 'sender') return; 
 
             mode = 'sender';
-            
-            // Simpan status session: HOST
             localStorage.setItem('audiobridge_session_mode', 'host');
 
-            // Handle ID
             const storedId = getStoredHostId();
             if (storedId) {
                 roomId = storedId;
@@ -499,13 +507,9 @@
             await setupLocalAudio(false); 
             createPeerConnection();
 
-            // Firestore Logic
             const callDoc = doc(db, `calls/${roomId}`);
             const offerCandidates = collection(db, `calls/${roomId}/callerCandidates`);
             const answerCandidates = collection(db, `calls/${roomId}/calleeCandidates`);
-
-            // Clean up old candidates if reusing ID
-            // (Opsional: bisa ditambahkan logic delete collection jika perlu)
 
             peerConnection.onicecandidate = (event) => {
                 if (event.candidate) addDoc(offerCandidates, event.candidate.toJSON());
@@ -545,7 +549,6 @@
             mode = 'receiver';
             roomId = inputId;
 
-            // Simpan status session: JOINER dan ID nya
             localStorage.setItem('audiobridge_session_mode', 'join');
             localStorage.setItem('audiobridge_join_id', roomId);
 
@@ -560,7 +563,6 @@
 
             if (!snapshot.exists()) {
                 alert("ID Tidak Ditemukan.");
-                // Jika ID tidak valid, batalkan auto-reconnect agar tidak loop error
                 localStorage.removeItem('audiobridge_session_mode');
                 localStorage.removeItem('audiobridge_join_id');
                 window.location.reload();
