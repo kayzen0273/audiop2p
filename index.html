@@ -141,7 +141,7 @@
                     <button id="copyBtn" onclick="copyId()" class="hidden bg-slate-800 hover:bg-slate-700 text-xs px-4 py-2 rounded-full flex items-center gap-2 text-slate-300 transition-colors">
                         <i class="fa-regular fa-copy"></i> Salin ID
                     </button>
-                    <!-- Tombol Reset ID Baru -->
+                    <!-- Tombol Reset ID Baru (Hanya Host) -->
                     <button id="resetIdBtn" onclick="resetHostId()" class="hidden bg-slate-800 hover:bg-red-900/30 text-xs px-4 py-2 rounded-full flex items-center gap-2 text-red-400 border border-transparent hover:border-red-900 transition-colors">
                         <i class="fa-solid fa-rotate"></i> Ganti ID
                     </button>
@@ -165,9 +165,9 @@
                         </button>
                     </div>
 
-                    <!-- Tombol Stop (Update Fungsi) -->
-                    <button onclick="stopHosting()" class="mt-4 text-xs text-red-400 hover:text-red-300 flex items-center justify-center gap-2 py-2">
-                        <i class="fa-solid fa-power-off"></i> Putus Koneksi
+                    <!-- Tombol Stop (Berlaku untuk Host & Joiner) -->
+                    <button onclick="stopConnection()" class="mt-4 text-xs text-red-400 hover:text-red-300 flex items-center justify-center gap-2 py-2">
+                        <i class="fa-solid fa-power-off"></i> Putus & Keluar
                     </button>
                 </div>
 
@@ -291,14 +291,25 @@
                 document.getElementById('connectionStatus').textContent = 'ONLINE';
                 document.getElementById('connectionStatus').classList.replace('text-slate-400', 'text-emerald-400');
 
-                // AUTO RECONNECT LOGIC
-                // Jika sebelumnya sedang hosting (ditandai di localStorage), otomatis start lagi
-                if (localStorage.getItem('audiobridge_is_hosting') === 'true') {
-                    console.log("Auto-reconnecting session...");
-                    startHosting();
-                }
+                checkAutoReconnect();
             }
         });
+
+        function checkAutoReconnect() {
+            // Cek status sesi terakhir dari localStorage
+            const sessionMode = localStorage.getItem('audiobridge_session_mode'); // 'host' atau 'join'
+            const savedJoinId = localStorage.getItem('audiobridge_join_id');
+
+            if (sessionMode === 'host') {
+                console.log("Auto-reconnecting Host...");
+                startHosting();
+            } else if (sessionMode === 'join' && savedJoinId) {
+                console.log("Auto-reconnecting Mobile to: " + savedJoinId);
+                // Isi input dan jalankan join
+                document.getElementById('joinInput').value = savedJoinId;
+                joinRoom();
+            }
+        }
 
         // --- GOOGLE CAMOUFLAGE LOGIC ---
         window.openYouTubeInNewTab = () => {
@@ -339,7 +350,7 @@
                 isMuted = muted;
                 if (mode === 'receiver') updateMicUI();
             } catch (err) {
-                alert("Gagal akses mikrofon: " + err.message);
+                alert("Gagal akses mikrofon (Wajib untuk WebRTC): " + err.message);
             }
         }
 
@@ -370,9 +381,11 @@
                     }
 
                 } else if (state === 'disconnected' || state === 'failed') {
-                    connectionText.textContent = "TERPUTUS - REFRESH";
+                    connectionText.textContent = "TERPUTUS - RECONNECTING...";
                     connectionText.classList.add('text-red-500');
                     rippleEffect.classList.add('hidden');
+                    // WebRTC native reconnect kadang lama, refresh halaman lebih efektif untuk logic kita
+                    setTimeout(() => window.location.reload(), 2000); 
                 }
             };
         }
@@ -392,25 +405,29 @@
             setTimeout(() => btn.innerHTML = '<i class="fa-regular fa-copy"></i> Salin ID', 2000);
         };
 
-        // --- FITUR ID TETAP & STOP ---
-        function getStoredId() {
+        // --- HOST STORAGE LOGIC ---
+        function getStoredHostId() {
             return localStorage.getItem('audiobridge_host_id');
         }
 
-        function saveId(id) {
+        function saveHostId(id) {
             localStorage.setItem('audiobridge_host_id', id);
         }
 
         window.resetHostId = () => {
             if(confirm("Buat ID baru? ID lama akan hangus.")) {
                 localStorage.removeItem('audiobridge_host_id');
-                window.stopHosting(); // Stop dulu baru reload
+                window.stopConnection(); // Reset total
             }
         };
 
-        // Fungsi baru untuk memutus koneksi dan menghapus status auto-reconnect
-        window.stopHosting = () => {
-            localStorage.removeItem('audiobridge_is_hosting'); // Hapus flag auto-start
+        // --- UNIVERSAL STOP FUNCTION ---
+        window.stopConnection = () => {
+            // Hapus session flags
+            localStorage.removeItem('audiobridge_session_mode');
+            localStorage.removeItem('audiobridge_join_id');
+            
+            // Matikan media
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
             }
@@ -423,22 +440,21 @@
         // --- MAIN FUNCTIONS ---
         window.startHosting = async () => {
             if (!user) return;
-            // Cegah double start jika dipanggil 2x
             if (mode === 'sender') return; 
 
             mode = 'sender';
             
-            // SET FLAG AUTO-RECONNECT
-            localStorage.setItem('audiobridge_is_hosting', 'true');
+            // Simpan status session: HOST
+            localStorage.setItem('audiobridge_session_mode', 'host');
 
-            // CEK ID TERSIMPAN
-            const storedId = getStoredId();
+            // Handle ID
+            const storedId = getStoredHostId();
             if (storedId) {
                 roomId = storedId;
                 log("ID Tetap: " + roomId);
             } else {
                 roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
-                saveId(roomId);
+                saveHostId(roomId);
                 log("ID Baru: " + roomId);
             }
 
@@ -490,8 +506,14 @@
         window.joinRoom = async () => {
             const inputId = document.getElementById('joinInput').value.toUpperCase();
             if (!user || !inputId) return;
+            if (mode === 'receiver') return;
+
             mode = 'receiver';
             roomId = inputId;
+
+            // Simpan status session: JOINER dan ID nya
+            localStorage.setItem('audiobridge_session_mode', 'join');
+            localStorage.setItem('audiobridge_join_id', roomId);
 
             landingPage.classList.add('hidden');
             activePage.classList.remove('hidden');
@@ -504,6 +526,9 @@
 
             if (!snapshot.exists()) {
                 alert("ID Tidak Ditemukan.");
+                // Jika ID tidak valid, batalkan auto-reconnect agar tidak loop error
+                localStorage.removeItem('audiobridge_session_mode');
+                localStorage.removeItem('audiobridge_join_id');
                 window.location.reload();
                 return;
             }
