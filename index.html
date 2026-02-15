@@ -141,10 +141,6 @@
                     <button id="copyBtn" onclick="copyId()" class="hidden bg-slate-800 hover:bg-slate-700 text-xs px-4 py-2 rounded-full flex items-center gap-2 text-slate-300 transition-colors">
                         <i class="fa-regular fa-copy"></i> Salin ID
                     </button>
-                    <!-- Tombol Reset ID Baru (Hanya Host) -->
-                    <button id="resetIdBtn" onclick="resetHostId()" class="hidden bg-slate-800 hover:bg-red-900/30 text-xs px-4 py-2 rounded-full flex items-center gap-2 text-red-400 border border-transparent hover:border-red-900 transition-colors">
-                        <i class="fa-solid fa-rotate"></i> Ganti ID
-                    </button>
                 </div>
 
                 <!-- Kontrol Audio & Info -->
@@ -165,8 +161,8 @@
                         </button>
                     </div>
 
-                    <!-- Tombol Stop (Berlaku untuk Host & Joiner) -->
-                    <button onclick="stopConnection()" class="mt-4 text-xs text-red-400 hover:text-red-300 flex items-center justify-center gap-2 py-2">
+                    <!-- Tombol Stop (Hanya muncul untuk HP/Receiver) -->
+                    <button id="disconnectBtn" onclick="stopConnection()" class="hidden mt-4 text-xs text-red-400 hover:text-red-300 flex items-center justify-center gap-2 py-2 w-full">
                         <i class="fa-solid fa-power-off"></i> Putus & Keluar
                     </button>
                 </div>
@@ -275,6 +271,7 @@
         const statusCard = document.getElementById('statusCard');
         const rippleEffect = document.getElementById('rippleEffect');
         const mobileMicBtn = document.getElementById('mobileMicBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
 
         const servers = {
             iceServers: [
@@ -414,13 +411,6 @@
             localStorage.setItem('audiobridge_host_id', id);
         }
 
-        window.resetHostId = () => {
-            if(confirm("Buat ID baru? ID lama akan hangus.")) {
-                localStorage.removeItem('audiobridge_host_id');
-                window.stopConnection(); // Reset total
-            }
-        };
-
         // --- UNIVERSAL STOP FUNCTION ---
         window.stopConnection = () => {
             // Hapus session flags
@@ -463,7 +453,9 @@
             document.getElementById('displayRoomId').textContent = roomId;
             document.getElementById('laptopControls').classList.remove('hidden');
             document.getElementById('copyBtn').classList.remove('hidden');
-            document.getElementById('resetIdBtn').classList.remove('hidden');
+            
+            // PASTIKAN TOMBOL DISCONNECT DISEMBUNYIKAN DI MODE HOST
+            disconnectBtn.classList.add('hidden');
 
             await setupLocalAudio(false); 
             createPeerConnection();
@@ -520,6 +512,9 @@
             document.getElementById('displayRoomId').textContent = roomId;
             document.getElementById('roleBadge').textContent = "HP (Monitor)";
             document.getElementById('mobileControls').classList.remove('hidden');
+
+            // TAMPILKAN TOMBOL DISCONNECT DI MODE HP
+            disconnectBtn.classList.remove('hidden');
 
             const callDoc = doc(db, `calls/${roomId}`);
             const snapshot = await getDoc(callDoc);
