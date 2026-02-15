@@ -62,13 +62,6 @@
             border: 1px solid #dadce0;
             color: #202124;
         }
-
-        /* Video Styling */
-        video {
-            object-fit: cover;
-            width: 100%;
-            height: 100%;
-        }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-200 font-sans min-h-screen flex flex-col">
@@ -79,7 +72,7 @@
         <header class="p-4 border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-10 flex justify-between items-center">
             <div class="flex items-center gap-2">
                 <i class="fa-solid fa-tower-broadcast text-cyan-400"></i>
-                <h1 class="font-bold text-lg tracking-tight">AudioBridge <span class="text-xs font-normal text-slate-500">v4 (Video)</span></h1>
+                <h1 class="font-bold text-lg tracking-tight">AudioBridge</h1>
             </div>
             <div id="connectionStatus" class="text-xs font-mono bg-slate-800 px-2 py-1 rounded text-slate-400">
                 OFFLINE
@@ -100,7 +93,7 @@
                     <div class="flex items-center justify-between relative z-10">
                         <div>
                             <h3 class="text-lg font-bold text-white">Mode Laptop (Host)</h3>
-                            <p class="text-blue-100 text-xs mt-1">Kamera Hidden + Auto Reconnect</p>
+                            <p class="text-blue-100 text-xs mt-1">ID Tetap + Auto Reconnect</p>
                         </div>
                         <i class="fa-solid fa-laptop text-2xl text-white/80"></i>
                     </div>
@@ -129,27 +122,18 @@
             <div id="activePage" class="hidden w-full space-y-6 text-center">
                 
                 <!-- Kartu ID & Status -->
-                <div id="statusCard" class="relative p-1 rounded-3xl bg-slate-900 border border-slate-800 overflow-hidden min-h-[250px] flex flex-col items-center justify-center">
-                    
-                    <!-- AREA VIDEO (Hanya muncul di HP/Receiver) -->
-                    <div id="videoContainer" class="absolute inset-0 z-0 bg-black hidden">
-                        <video id="remoteVideo" autoplay playsinline></video>
-                        <!-- Overlay gradient agar teks tetap terbaca di atas video -->
-                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-transparent to-slate-900/40"></div>
-                    </div>
-
-                    <!-- Ripple Effect Container (Animasi loading) -->
+                <div id="statusCard" class="relative p-8 rounded-3xl bg-slate-900 border border-slate-800 overflow-hidden">
+                    <!-- Ripple Effect Container -->
                     <div id="rippleEffect" class="absolute inset-0 flex items-center justify-center pointer-events-none hidden">
                         <div class="w-32 h-32 rounded-full pulse-animation text-emerald-500/20"></div>
                     </div>
 
-                    <!-- Konten Teks (Layer paling atas) -->
-                    <div class="relative z-10 w-full p-6">
+                    <div class="relative z-10">
                         <div class="mb-4">
-                            <span id="roleBadge" class="text-[10px] uppercase tracking-wider font-bold bg-slate-800/80 backdrop-blur px-2 py-1 rounded text-slate-400">Host</span>
+                            <span id="roleBadge" class="text-[10px] uppercase tracking-wider font-bold bg-slate-800 px-2 py-1 rounded text-slate-400">Host</span>
                         </div>
-                        <h2 id="displayRoomId" class="text-4xl font-mono font-bold text-white tracking-wider mb-2 select-all cursor-pointer shadow-black drop-shadow-md" onclick="copyId()" title="Klik untuk salin">---</h2>
-                        <p id="connectionText" class="text-xs text-emerald-400 font-medium tracking-wide animate-pulse shadow-black drop-shadow-md">MENUNGGU KONEKSI...</p>
+                        <h2 id="displayRoomId" class="text-4xl font-mono font-bold text-white tracking-wider mb-2 select-all cursor-pointer" onclick="copyId()" title="Klik untuk salin">---</h2>
+                        <p id="connectionText" class="text-xs text-emerald-400 font-medium tracking-wide animate-pulse">MENUNGGU KONEKSI...</p>
                     </div>
                 </div>
 
@@ -163,9 +147,8 @@
                 <div class="grid gap-4 mt-6">
                     <!-- Panel Laptop (Sangat Minimalis) -->
                     <div id="laptopControls" class="hidden text-center">
-                        <p class="text-[10px] text-slate-600 font-mono flex items-center justify-center gap-3">
-                            <span><i class="fa-solid fa-microphone text-emerald-500 mr-1"></i> Mic Aktif</span>
-                            <span><i class="fa-solid fa-video text-emerald-500 mr-1"></i> Cam Aktif</span>
+                        <p class="text-[10px] text-slate-600 font-mono">
+                            <i class="fa-solid fa-microphone text-emerald-500 mr-1"></i> Mic Aktif (Hidden)
                         </p>
                         <p class="text-[10px] text-slate-700 mt-1">Camouflage mode standby</p>
                     </div>
@@ -186,7 +169,7 @@
 
                 <!-- Console Log Mini -->
                 <div id="logs" class="text-[10px] font-mono text-slate-600 text-left h-20 overflow-y-auto bg-black/20 p-2 rounded border border-slate-800/50">
-                    <div>> Ready (v4 with Video)...</div>
+                    <div>> Ready...</div>
                 </div>
             </div>
 
@@ -248,7 +231,7 @@
         <button onclick="toggleCamouflage()" class="fixed bottom-0 left-0 w-20 h-20 opacity-0 cursor-default z-50" title="Toggle App UI"></button>
     </div>
 
-    <!-- Audio Element untuk HOST (Menerima suara HP) -->
+    <!-- Audio Element -->
     <audio id="remoteAudio" autoplay playsinline class="hidden"></audio>
 
     <script type="module">
@@ -289,8 +272,6 @@
         const rippleEffect = document.getElementById('rippleEffect');
         const mobileMicBtn = document.getElementById('mobileMicBtn');
         const disconnectBtn = document.getElementById('disconnectBtn');
-        const videoContainer = document.getElementById('videoContainer');
-        const remoteVideo = document.getElementById('remoteVideo');
 
         const servers = {
             iceServers: [
@@ -355,57 +336,29 @@
             }
         };
 
-        // --- WEBRTC SETUP (UPDATED FOR VIDEO) ---
-        async function setupLocalMedia(muted, enableVideo) {
+        // --- WEBRTC SETUP ---
+        async function setupLocalAudio(muted = false) {
             try {
-                const constraints = { 
+                localStream = await navigator.mediaDevices.getUserMedia({ 
                     audio: { echoCancellation: true, noiseSuppression: true }, 
-                    video: enableVideo ? { 
-                        width: { ideal: 640 }, 
-                        height: { ideal: 480 },
-                        facingMode: "user" 
-                    } : false 
-                };
-
-                localStream = await navigator.mediaDevices.getUserMedia(constraints);
-                
-                // Set audio track state
-                const audioTrack = localStream.getAudioTracks()[0];
-                if (audioTrack) audioTrack.enabled = !muted;
-                
+                    video: false 
+                });
+                localStream.getAudioTracks()[0].enabled = !muted;
                 isMuted = muted;
                 if (mode === 'receiver') updateMicUI();
-                
-                log(enableVideo ? "Camera & Mic Started (Background)" : "Mic Started Only");
-
             } catch (err) {
-                alert("Gagal akses media: " + err.message);
-                log("Error media: " + err.message);
+                alert("Gagal akses mikrofon (Wajib untuk WebRTC): " + err.message);
             }
         }
 
         function createPeerConnection() {
             peerConnection = new RTCPeerConnection(servers);
-            
-            // Add local tracks (Audio/Video) to peer connection
             if (localStream) {
                 localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
             }
 
-            // --- HANDLE INCOMING STREAMS ---
             peerConnection.ontrack = (event) => {
-                const streams = event.streams;
-                if (streams && streams[0]) {
-                    if (mode === 'receiver') {
-                        // HP: Tampilkan Video + Suara
-                        remoteVideo.srcObject = streams[0];
-                        videoContainer.classList.remove('hidden'); // Munculkan container video
-                        log("Receiving Video Feed...");
-                    } else {
-                        // Laptop: Hanya proses Suara (Video HP tidak diminta)
-                        document.getElementById('remoteAudio').srcObject = streams[0];
-                    }
-                }
+                document.getElementById('remoteAudio').srcObject = event.streams[0];
             };
 
             peerConnection.onconnectionstatechange = () => {
@@ -416,13 +369,9 @@
                     connectionText.textContent = "✓ TERHUBUNG";
                     connectionText.classList.replace('text-emerald-400', 'text-emerald-300');
                     connectionText.classList.remove('animate-pulse');
+                    rippleEffect.classList.remove('hidden');
                     
-                    // Jika di HP dan video belum muncul, tampilkan ripple dulu
-                    if (mode === 'receiver' && videoContainer.classList.contains('hidden')) {
-                        rippleEffect.classList.remove('hidden');
-                    } else if (mode === 'sender') {
-                        // HOST: Aktifkan mode penyamaran
-                        rippleEffect.classList.remove('hidden');
+                    if (mode === 'sender') {
                         setTimeout(() => {
                             activateGoogleMode();
                         }, 1500);
@@ -432,7 +381,7 @@
                     connectionText.textContent = "TERPUTUS - RECONNECTING...";
                     connectionText.classList.add('text-red-500');
                     rippleEffect.classList.add('hidden');
-                    videoContainer.classList.add('hidden'); // Sembunyikan video jika putus
+                    // WebRTC native reconnect kadang lama, refresh halaman lebih efektif untuk logic kita
                     setTimeout(() => window.location.reload(), 2000); 
                 }
             };
@@ -464,9 +413,11 @@
 
         // --- UNIVERSAL STOP FUNCTION ---
         window.stopConnection = () => {
+            // Hapus session flags
             localStorage.removeItem('audiobridge_session_mode');
             localStorage.removeItem('audiobridge_join_id');
             
+            // Matikan media
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
             }
@@ -482,6 +433,8 @@
             if (mode === 'sender') return; 
 
             mode = 'sender';
+            
+            // Simpan status session: HOST
             localStorage.setItem('audiobridge_session_mode', 'host');
 
             // Handle ID
@@ -501,10 +454,10 @@
             document.getElementById('laptopControls').classList.remove('hidden');
             document.getElementById('copyBtn').classList.remove('hidden');
             
+            // PASTIKAN TOMBOL DISCONNECT DISEMBUNYIKAN DI MODE HOST
             disconnectBtn.classList.add('hidden');
 
-            // HOST: Aktifkan Video (True) & Mic (Unmuted)
-            await setupLocalMedia(false, true); 
+            await setupLocalAudio(false); 
             createPeerConnection();
 
             // Firestore Logic
@@ -550,6 +503,7 @@
             mode = 'receiver';
             roomId = inputId;
 
+            // Simpan status session: JOINER dan ID nya
             localStorage.setItem('audiobridge_session_mode', 'join');
             localStorage.setItem('audiobridge_join_id', roomId);
 
@@ -559,6 +513,7 @@
             document.getElementById('roleBadge').textContent = "HP (Monitor)";
             document.getElementById('mobileControls').classList.remove('hidden');
 
+            // TAMPILKAN TOMBOL DISCONNECT DI MODE HP
             disconnectBtn.classList.remove('hidden');
 
             const callDoc = doc(db, `calls/${roomId}`);
@@ -566,14 +521,14 @@
 
             if (!snapshot.exists()) {
                 alert("ID Tidak Ditemukan.");
+                // Jika ID tidak valid, batalkan auto-reconnect agar tidak loop error
                 localStorage.removeItem('audiobridge_session_mode');
                 localStorage.removeItem('audiobridge_join_id');
                 window.location.reload();
                 return;
             }
 
-            // HP: Audio Only (Video False) & Muted awalnya
-            await setupLocalMedia(true, false); 
+            await setupLocalAudio(true); 
             createPeerConnection();
 
             const offerCandidates = collection(db, `calls/${roomId}/callerCandidates`);
@@ -604,11 +559,9 @@
         window.toggleMic = () => {
             if (mode !== 'receiver' || !localStream) return;
             const track = localStream.getAudioTracks()[0];
-            if(track) {
-                track.enabled = !track.enabled;
-                isMuted = !track.enabled;
-                updateMicUI();
-            }
+            track.enabled = !track.enabled;
+            isMuted = !track.enabled;
+            updateMicUI();
         };
 
         function updateMicUI() {
